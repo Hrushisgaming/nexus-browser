@@ -371,7 +371,7 @@
      const protocol = new URL(normalizeURL(data.tab.url)).protocol;
 -    if (protocol === 'chrome:') {
 -      this.$.secondaryTextInner.prepend(document.createTextNode('chrome://'));
-+    if (protocol === 'chrome:' || protocol === 'helium:') {
++    if (protocol === 'chrome:' || protocol === 'nexus:') {
 +      this.$.secondaryTextInner.prepend(document.createTextNode('nexus://'));
      }
    }
