@@ -1,0 +1,128 @@
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+index 08d049a..3173504 100644
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -63,7 +63,13 @@
+ #include "chrome/browser/ui/layout_constants.h"
+ #include "chrome/browser/ui/omnibox/omnibox_view.h"
+ #include "chrome/browser/ui/page_action/page_action_properties_provider.h"
++#include "chrome/app/vector_icons/vector_icons.h"
+ #include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
++#include "chrome/browser/ui/side_panel/side_panel_entry_key.h"
++#include "chrome/browser/ui/side_panel/side_panel_enums.h"
++#include "chrome/browser/ui/side_panel/side_panel_ui.h"
++#include "chrome/browser/ui/views/tabs/tab_strip_control_button.h"
++#include "extensions/common/extension_id.h"
+ #include "chrome/browser/ui/tabs/public/tab_features.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/browser/ui/tabs/tab_strip_prefs.h"
+@@ -602,6 +608,18 @@ void ToolbarView::Init() {
+     location_bar_ = toolbar_webview_->GetLocationBar();
+   }
+ 
++  // Nexus: "Ask Nexus" button, like Chrome's Gemini button next to the address bar when
++  // the tabs are vertical. Hidden until UpdateNexusAskButton() decides to show it.
++  nexus_ask_button_ = AddChildView(std::make_unique<TabStripControlButton>(
++      browser_.get(),
++      base::BindRepeating(&ToolbarView::OnNexusAskButtonPressed,
++                          base::Unretained(this)),
++      kNexusCrosshairIcon, std::u16string(u"Ask Nexus"), Edge::kNone,
++      Edge::kNone));
++  nexus_ask_button_->SetTooltipText(u"Ask Nexus");
++  nexus_ask_button_->GetViewAccessibility().SetName(u"Ask Nexus");
++  nexus_ask_button_->SetVisible(false);
++
+   if (auto* vertical_tab_strip_state_controller =
+           tabs::VerticalTabStripStateController::From(
+               browser_view_->browser())) {
+@@ -849,6 +867,11 @@ void ToolbarView::Init() {
+       base::BindRepeating(&ToolbarView::UpdateToolbarLayout,
+                           base::Unretained(this)));
+ 
++  nexus_ask_button_shown_.Init(
++      tabs::kNexusAskButtonShown, prefs,
++      base::BindRepeating(&ToolbarView::UpdateNexusAskButton,
++                          base::Unretained(this)));
++
+   show_dynamic_new_tab_button_.Init(
+       prefs::kShowDynamicNewTabButton, prefs,
+       base::BindRepeating(&ToolbarView::UpdateToolbarLayout,
+@@ -2216,6 +2239,7 @@ void ToolbarView::UpdateToolbarLayout() {
+   }
+ 
+   UpdateVerticalTabsCollapseButton();
++  UpdateNexusAskButton();
+   UpdateDynamicNewTabButton();
+ 
+   if (vertical_tabs_collapse_button_) {
+@@ -2301,6 +2325,29 @@ bool ToolbarView::ShouldShowToolbarNewTabButton() const {
+   return IsDynamicLayout();
+ }
+ 
++void ToolbarView::OnNexusAskButtonPressed() {
++  // Id of the built-in "Chat with Nexus" extension (fixed by the "key" in its manifest.json).
++  static constexpr char kNexusChatExtensionId[] =
++      "iokkgaheigikheidihfidjdkocoaplco";
++  if (SidePanelUI* const side_panel_ui = SidePanelUI::From(browser_.get())) {
++    side_panel_ui->Toggle(
++        SidePanelEntryKey(SidePanelEntryId::kExtension,
++                          extensions::ExtensionId(kNexusChatExtensionId)),
++        SidePanelOpenTrigger::kToolbarButton);
++  }
++}
++
++void ToolbarView::UpdateNexusAskButton() {
++  if (!nexus_ask_button_) {
++    return;
++  }
++  const bool zen_hide = browser_view_->IsZenModeEnabledForLayout() &&
++                        !browser_view_->IsZenModeSideChromePinned();
++  nexus_ask_button_->SetVisible(IsVerticalLayout() &&
++                                nexus_ask_button_shown_.GetValue() &&
++                                !zen_hide);
++}
++
+ void ToolbarView::UpdateVerticalTabsCollapseButton() {
+   if (!vertical_tabs_collapse_button_) {
+     return;
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.h b/chrome/browser/ui/views/toolbar/toolbar_view.h
+index 75dd52b..bb26173 100644
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -67,6 +67,7 @@ class ToolbarController;
+ class ToolbarDivider;
+ class OverflowButton;
+ class PerformanceInterventionButton;
++class TabStripControlButton;
+ class TabStripRegionView;
+ 
+ namespace views {
+@@ -192,6 +193,11 @@ class ToolbarView : public views::AccessiblePaneView,
+   // Updates the vertical tabs collapse button visibility and icon.
+   void UpdateVerticalTabsCollapseButton();
+ 
++  // Nexus: the "Ask Nexus" button next to the address bar. It is only shown when the
++  // tabs are vertical (otherwise the button sits at the right end of the tab strip).
++  void OnNexusAskButtonPressed();
++  void UpdateNexusAskButton();
++
+   // Accessors.
+   BrowserWindowInterface* browser() const { return browser_; }
+   views::Button* GetChromeLabsButton() const;
+@@ -460,6 +466,7 @@ class ToolbarView : public views::AccessiblePaneView,
+   // |location_bar_| is guaranteed to exist. These pointers are owned by the
+   // view hierarchy.
+   raw_ptr<ToolbarButton> vertical_tabs_collapse_button_ = nullptr;
++  raw_ptr<TabStripControlButton> nexus_ask_button_ = nullptr;
+   raw_ptr<ToolbarButton> contextual_tasks_button_ = nullptr;
+   raw_ptr<ToolbarButton> back_ = nullptr;
+   raw_ptr<ToolbarButton> forward_ = nullptr;
+@@ -537,6 +544,8 @@ class ToolbarView : public views::AccessiblePaneView,
+ 
+   BooleanPrefMember show_vertical_tabs_collapse_button_;
+ 
++  BooleanPrefMember nexus_ask_button_shown_;
++
+   BooleanPrefMember show_dynamic_new_tab_button_;
+ 
+   BooleanPrefMember show_avatar_button_;
