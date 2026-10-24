@@ -7,7 +7,7 @@ runs:
       with:
         python-version: '3.13'
     - name: Copy GitHub specific scripts to git-root folder
-      run: cp -va ./.github/scripts/ ./ ; date +%s > ./epoch_job_start.txt
+      run: cp -va ./.github/scripts/ ./ ; chmod +x ./*.sh ; date +%s > ./epoch_job_start.txt
       shell: bash
       working-directory: helium-macos
     - name: Prepare Xcode
