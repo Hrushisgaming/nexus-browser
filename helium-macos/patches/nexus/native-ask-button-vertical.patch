@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui/views/toolbar/toolbar_view.cc
-index 08d049a..3173504 100644
+index 08d049a..95a031c 100644
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
 @@ -63,7 +63,13 @@
@@ -16,12 +16,12 @@ index 08d049a..3173504 100644
  #include "chrome/browser/ui/tabs/public/tab_features.h"
  #include "chrome/browser/ui/tabs/tab_strip_model.h"
  #include "chrome/browser/ui/tabs/tab_strip_prefs.h"
-@@ -602,6 +608,18 @@ void ToolbarView::Init() {
-     location_bar_ = toolbar_webview_->GetLocationBar();
+@@ -725,6 +731,18 @@ void ToolbarView::Init() {
+     }
    }
  
-+  // Nexus: "Ask Nexus" button, like Chrome's Gemini button next to the address bar when
-+  // the tabs are vertical. Hidden until UpdateNexusAskButton() decides to show it.
++  // Nexus: "Ask Nexus" button, right after the extensions and the other toolbar buttons and
++  // directly left of the profile button. Hidden until UpdateNexusAskButton() shows it.
 +  nexus_ask_button_ = AddChildView(std::make_unique<TabStripControlButton>(
 +      browser_.get(),
 +      base::BindRepeating(&ToolbarView::OnNexusAskButtonPressed,
@@ -32,9 +32,9 @@ index 08d049a..3173504 100644
 +  nexus_ask_button_->GetViewAccessibility().SetName(u"Ask Nexus");
 +  nexus_ask_button_->SetVisible(false);
 +
-   if (auto* vertical_tab_strip_state_controller =
-           tabs::VerticalTabStripStateController::From(
-               browser_view_->browser())) {
+   if (is_glic_left_of_profile &&
+       glic::GlicEnabling::IsProfileEligible(browser_view_->GetProfile())) {
+     InitGlicContainer();
 @@ -849,6 +867,11 @@ void ToolbarView::Init() {
        base::BindRepeating(&ToolbarView::UpdateToolbarLayout,
                            base::Unretained(this)));
@@ -55,7 +55,7 @@ index 08d049a..3173504 100644
    UpdateDynamicNewTabButton();
  
    if (vertical_tabs_collapse_button_) {
-@@ -2301,6 +2325,29 @@ bool ToolbarView::ShouldShowToolbarNewTabButton() const {
+@@ -2301,6 +2325,32 @@ bool ToolbarView::ShouldShowToolbarNewTabButton() const {
    return IsDynamicLayout();
  }
  
@@ -75,9 +75,12 @@ index 08d049a..3173504 100644
 +  if (!nexus_ask_button_) {
 +    return;
 +  }
++  // Classic layout: the button is at the right end of the tab strip. Every other layout: here.
++  const bool in_toolbar =
++      IsCompactLayout() || IsDynamicLayout() || IsVerticalLayout();
 +  const bool zen_hide = browser_view_->IsZenModeEnabledForLayout() &&
 +                        !browser_view_->IsZenModeSideChromePinned();
-+  nexus_ask_button_->SetVisible(IsVerticalLayout() &&
++  nexus_ask_button_->SetVisible(in_toolbar &&
 +                                nexus_ask_button_shown_.GetValue() &&
 +                                !zen_hide);
 +}
@@ -86,7 +89,7 @@ index 08d049a..3173504 100644
    if (!vertical_tabs_collapse_button_) {
      return;
 diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.h b/chrome/browser/ui/views/toolbar/toolbar_view.h
-index 75dd52b..bb26173 100644
+index 75dd52b..1d7c03e 100644
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.h
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
 @@ -67,6 +67,7 @@ class ToolbarController;
@@ -101,8 +104,8 @@ index 75dd52b..bb26173 100644
    // Updates the vertical tabs collapse button visibility and icon.
    void UpdateVerticalTabsCollapseButton();
  
-+  // Nexus: the "Ask Nexus" button next to the address bar. It is only shown when the
-+  // tabs are vertical (otherwise the button sits at the right end of the tab strip).
++  // Nexus: the "Ask Nexus" button, left of the profile button. It is shown in the vertical, dynamic
++  // and compact layouts; in the classic layout it sits at the right end of the tab strip instead.
 +  void OnNexusAskButtonPressed();
 +  void UpdateNexusAskButton();
 +
@@ -126,3 +129,50 @@ index 75dd52b..bb26173 100644
    BooleanPrefMember show_dynamic_new_tab_button_;
  
    BooleanPrefMember show_avatar_button_;
+diff --git a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+index 90d4300..02e4db9 100644
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+@@ -361,10 +361,18 @@ void HorizontalTabStripRegionViewOld::OnNexusAskButtonPressed() {
+ }
+ 
+ void HorizontalTabStripRegionViewOld::UpdateNexusAskButtonVisibility() {
+-  if (nexus_ask_button_) {
+-    nexus_ask_button_->SetVisible(
+-        browser_view_->GetProfile()->GetPrefs()->GetBoolean(
+-            tabs::kNexusAskButtonShown));
++  if (!nexus_ask_button_) {
++    return;
++  }
++  // Only the classic layout shows the button here, at the right end of the tab row. The vertical, dynamic
++  // and compact layouts show it in the toolbar, left of the profile button.
++  const auto* layout_controller =
++      HeliumLayoutStateController::From(browser_view_->browser());
++  const bool classic = !layout_controller || layout_controller->IsClassicLayout();
++  const bool visible = classic && browser_view_->GetProfile()->GetPrefs()->GetBoolean(
++                                      tabs::kNexusAskButtonShown);
++  if (nexus_ask_button_->GetVisible() != visible) {
++    nexus_ask_button_->SetVisible(visible);
+   }
+ }
+ 
+@@ -432,6 +440,11 @@ views::View::Views HorizontalTabStripRegionViewOld::GetChildrenInZOrder() {
+     children.emplace_back(reserved_grab_handle_space_.get());
+   }
+ 
++  // Nexus: without this line the "Ask Nexus" button is never painted or clicked.
++  if (nexus_ask_button_) {
++    children.emplace_back(nexus_ask_button_.get());
++  }
++
+   return children;
+ }
+ 
+@@ -458,6 +471,7 @@ void HorizontalTabStripRegionViewOld::Layout(PassKey) {
+     }
+   }
+ 
++  UpdateNexusAskButtonVisibility();
+   UpdateTabStripMargin();
+   LayoutSuperclass<views::AccessiblePaneView>(this);
+ 
