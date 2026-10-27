@@ -21,4 +21,7 @@ echo "=== DIAG: state after unpack ==="
 ls -la "$_src_dir/out/Default" | head -40 || true
 ls -la "$_src_dir/out/Default"/.siso* 2>&1 | head || true
 echo "object files present: $(find "$_src_dir/out/Default/obj" -name '*.o' 2>/dev/null | wc -l)"
+# Compare with "state before packing" of the previous phase: the times must match to the nanosecond.
+find "$_src_dir/out/Default/obj" -name '*.o' 2>/dev/null | head -3 | while read -r _f; do stat -f '%Fm %N' "$_f"; done || true
+stat -f '%Fm %N' "$_src_dir/out/Default/build.ninja" || true
 echo "=== END DIAG ==="

@@ -54,8 +54,19 @@ fi
 
 gsync --file-system "$_src_dir"
 
+# Resume check, part 1: what the next phase will have to work with. The next phase prints the same lines after unpacking.
+echo "=== DIAG: state before packing ==="
+ls -la "$_src_dir/out/Default"/.siso* 2>&1 | head || true
+echo "object files present: $(find "$_src_dir/out/Default/obj" -name '*.o' 2>/dev/null | wc -l)"
+find "$_src_dir/out/Default/obj" -name '*.o' 2>/dev/null | head -3 | while read -r _f; do stat -f '%Fm %N' "$_f"; done || true
+stat -f '%Fm %N' "$_src_dir/out/Default/build.ninja" || true
+echo "=== END DIAG ==="
+
 # Needs to be compressed to stay below GitHub's upload limit 2 GB (?!) 2020-11-24; used to be  5-8GB (?)
-tar -C build -c -f - src | zstd -vv -11 -T0 -o build_src.tar.zst
+# --format pax keeps the file times to the nanosecond. The default tar format rounds them to whole seconds, and then the
+# next phase may see every compiled file as changed and compile it all again (that is what the Oct 2026 run did: all 10
+# phases started at [0/85k] and the build never finished, so no dmg).
+tar --format pax -C build -c -f - src | zstd -vv -11 -T0 -o build_src.tar.zst
 
 sha256sum ./build_src.tar.zst | tee ./sums.txt
 
