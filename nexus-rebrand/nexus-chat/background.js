@@ -125,3 +125,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   await chrome.storage.session.set({ inbox });
   await openChat(tab?.windowId);
 });
+
+// nexus://ai opens the full-tab chat. The browser has no page of that name, so when a tab lands on it we send the tab to ours.
+const AI_URL = /^(nexus|helium|chrome):\/\/ai\/?(#.*)?$/i;
+const goAi = (tabId, url) => { if (url && AI_URL.test(url)) chrome.tabs.update(tabId, { url: chrome.runtime.getURL('ai.html') }).catch(() => {}); };
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => goAi(tabId, info.url || (info.status === 'loading' ? tab.url : '')));
+chrome.tabs.onCreated.addListener((tab) => goAi(tab.id, tab.pendingUrl || tab.url));

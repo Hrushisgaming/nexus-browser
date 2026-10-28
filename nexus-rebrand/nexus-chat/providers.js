@@ -33,7 +33,7 @@ export const PRESETS = [
 export const needsKey = (p) => p.provider !== 'compatible';
 export const baseOf = (p) => (p.baseUrl || PROVIDERS[p.provider].base || '').replace(/\/+$/, '');
 
-async function fail(res) {
+export async function fail(res) {
   let msg = '';
   try {
     const t = await res.text();
@@ -44,7 +44,7 @@ async function fail(res) {
 }
 
 // Yields the payload of each server-sent event.
-async function* sse(res) {
+export async function* sse(res) {
   const reader = res.body.getReader(), dec = new TextDecoder();
   let buf = '';
   for (;;) {

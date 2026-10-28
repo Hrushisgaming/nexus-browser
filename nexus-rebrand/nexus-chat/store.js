@@ -36,6 +36,8 @@ export const DEFAULTS = {
   fontSize: 14,
   theme: 'auto',
   lastTab: 'api',
+  tools: { enabled: true, off: [] },   // what the model may call (search, clock, ...)
+  translateTo: 'English',
   sites: SITES,
 };
 
@@ -43,6 +45,7 @@ export async function getSettings() {
   const { settings } = await chrome.storage.local.get('settings');
   const s = { ...structuredClone(DEFAULTS), ...(settings || {}) };
   s.launcher = { ...LAUNCHER, ...((settings && settings.launcher) || {}) };
+  s.tools = { ...DEFAULTS.tools, ...((settings && settings.tools) || {}) };
   const have = new Set((s.sites || []).map((x) => x.id));
   for (const b of SITES) if (!have.has(b.id)) s.sites.push({ ...b });
   // Sites saved by an older version get the built-in text and the built-in embed choice (unless you changed it yourself).

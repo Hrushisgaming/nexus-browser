@@ -47,3 +47,13 @@ PRIVACY AND SECURITY
 - The page button never reads the page. It only opens the panel.
 - To make the sign-in sites work inside the panel, the extension removes their "do not embed me" headers (X-Frame-Options and
   Content-Security-Policy), only for the sites you enabled and only inside this panel. Turn off any site you do not use.
+
+NEW IN 1.6  (attachments, tools, voice, translate, full tab)
+- Attach files: paperclip button, drag and drop, or paste a picture. Pictures, PDFs, text/code files and audio work (the model must support what you attach).
+- Tools: the model can search the web, read pages, tell the time, calculate, check weather, look up Wikipedia, read your current page or tab list,
+  make downloadable files, keep notes and more. Each use shows as "Model called search", "Model called clock" and so on. Turn tools off or pick them in Settings > Tools.
+  If a model does not support tools it just answers without them.
+- Voice: microphone button. Models that can hear (Gemini, GPT audio models...) get your voice directly. Other models need an OpenAI or Groq profile to turn voice into text.
+  Settings > AI connection > Advanced > "Can this model hear audio?" overrides the guess. (On-device Moonshine is not included yet.)
+- Translate page: button under the chat. Translates the page you are on, in place, with your AI model. Press again to show the original. Language: Settings > Translate.
+- Full tab: the window icon in the panel header, or type nexus://ai. Same chat, whole tab.

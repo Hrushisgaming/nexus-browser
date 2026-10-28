@@ -117,7 +117,7 @@
  std::vector<GURL> ChromeConfigurator::UpdateUrl() const {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 -  return configurator_impl_.UpdateUrl();
-+  return {helium::GetComponentUpdateURL(GetProfilePrefs())};
++  return {helium::GetComponentUpdateURL(GetProfilePrefs()), GURL("https://update.googleapis.com/service/update2/json")};
  }
  
  std::vector<GURL> ChromeConfigurator::PingUrl() const {
