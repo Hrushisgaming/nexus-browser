@@ -27,3 +27,5 @@ helium/macos/fix-history-swiper-lifetime.patch
 nexus/native-ask-button.patch
 nexus/native-ask-button-vertical.patch
 nexus/builtin-vault-vpn.patch
+nexus/native-ask-button-style.patch
+nexus/nexus-internal-pages.patch

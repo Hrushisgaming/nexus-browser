@@ -1,2 +1,9 @@
 .DS_Store
 helium-macos/build/
+
+# built by nexus-rebrand/fetch_convert.sh (keep only our own wrapper files)
+nexus-rebrand/nexus-convert/*
+!nexus-rebrand/nexus-convert/manifest.json
+!nexus-rebrand/nexus-convert/nexus-redirect.js
+!nexus-rebrand/nexus-convert/README.txt
+!nexus-rebrand/nexus-convert/icons/

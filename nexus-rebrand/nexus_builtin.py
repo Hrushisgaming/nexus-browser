@@ -120,12 +120,16 @@ def main(app, crx=None, native=False):
     pins = [UBLOCK_ID]
 
     # 1. Our own extensions (each manifest carries a fixed key, so the id is the same wherever the app lives)
-    own = (('nexus-chat', 'Chat with Nexus'),) if native else (('nexus-chat', 'Chat with Nexus'), ('nexus-vault', 'Nexus Vault'))
-    for folder, label in own:
+    own = [('nexus-chat', 'Chat with Nexus', True)] if native else [('nexus-chat', 'Chat with Nexus', True), ('nexus-vault', 'Nexus Vault', True)]
+    # "Convert to it!" (nexus://convert): only when fetch_convert.sh has built it (it has no toolbar icon, so it is not pinned)
+    if os.path.isfile(os.path.join(HERE, 'nexus-convert', 'index.html')): own.append(('nexus-convert', 'Convert with Nexus', False))
+    else: print('  Convert to it!: not built yet (run fetch_convert.sh), skipped')
+    for folder, label, pin in own:
         src = os.path.join(HERE, folder); dst = os.path.join(root, folder)
         shutil.copytree(src, dst, ignore=shutil.ignore_patterns('.DS_Store', 'README.txt', '__MACOSX'))
         with open(os.path.join(dst, 'manifest.json'), encoding='utf-8') as f: key = json.load(f)['key']
-        eid = ext_id(base64.b64decode(key)); pins.append(eid)
+        eid = ext_id(base64.b64decode(key))
+        if pin: pins.append(eid)
         print('  built in: %s  (id %s)' % (label, eid))
 
     # 2. Proton VPN (optional: only when its .crx has been fetched)

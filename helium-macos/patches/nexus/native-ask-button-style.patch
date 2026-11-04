@@ -1,0 +1,104 @@
+diff --git a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+index 02e4db9..d27a813 100644
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
+@@ -307,13 +307,16 @@ HorizontalTabStripRegionViewOld::HorizontalTabStripRegionViewOld(
+   // (kScaleToZero above) shrinks.
+   if (browser &&
+       (browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL)) {
+-    nexus_ask_button_ = AddChildView(std::make_unique<TabStripControlButton>(
++    nexus_ask_button_ = AddChildView(std::make_unique<TabStripNudgeButton>(
+         browser,
+         base::BindRepeating(
+             &HorizontalTabStripRegionViewOld::OnNexusAskButtonPressed,
+             base::Unretained(this)),
+-        kNexusCrosshairIcon, std::u16string(u"Ask Nexus"), Edge::kNone,
+-        Edge::kNone));
++        TabStripNudgeButton::PressedCallback(), u"Ask Nexus",
++        ui::ElementIdentifier(), Edge::kNone, kNexusCrosshairIcon,
++        /*show_close_button=*/false));
++    // A nudge button starts at width 0; Nexus keeps it fully open, like Ask Gemini.
++    nexus_ask_button_->SetWidthFactor(1.0f);
+     nexus_ask_button_->SetTooltipText(u"Ask Nexus");
+     nexus_ask_button_->GetViewAccessibility().SetName(u"Ask Nexus");
+     nexus_ask_button_->SetProperty(views::kCrossAxisAlignmentKey,
+diff --git a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h
+index 96d0488..3959648 100644
+--- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h
++++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h
+@@ -30,6 +30,7 @@ class TabStripComboButton;
+ class TabStrip;
+ class TabStripScrollContainer;
+ class TabStripControlButton;
++class TabStripNudgeButton;
+ 
+ // Container for the tabstrip and the other views sharing space with it -
+ // with the exception of the caption buttons.
+@@ -136,7 +137,7 @@ class HorizontalTabStripRegionViewOld : public TabStripRegionView {
+   raw_ptr<TabStripComboButton> combo_button_ = nullptr;
+   raw_ptr<views::Button> new_tab_button_ = nullptr;
+   raw_ptr<TabStripControlButton> unfocus_button_ = nullptr;
+-  raw_ptr<TabStripControlButton> nexus_ask_button_ = nullptr;
++  raw_ptr<TabStripNudgeButton> nexus_ask_button_ = nullptr;
+   PrefChangeRegistrar nexus_pref_registrar_;
+ 
+   std::unique_ptr<views::ActionViewController> action_view_controller_;
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+index 95a031c..2edadc0 100644
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -68,7 +68,7 @@
+ #include "chrome/browser/ui/side_panel/side_panel_entry_key.h"
+ #include "chrome/browser/ui/side_panel/side_panel_enums.h"
+ #include "chrome/browser/ui/side_panel/side_panel_ui.h"
+-#include "chrome/browser/ui/views/tabs/tab_strip_control_button.h"
++#include "chrome/browser/ui/views/tabs/tab_strip_nudge_button.h"
+ #include "extensions/common/extension_id.h"
+ #include "chrome/browser/ui/tabs/public/tab_features.h"
+ #include "chrome/browser/ui/tabs/tab_strip_model.h"
+@@ -733,12 +733,20 @@ void ToolbarView::Init() {
+ 
+   // Nexus: "Ask Nexus" button, right after the extensions and the other toolbar buttons and
+   // directly left of the profile button. Hidden until UpdateNexusAskButton() shows it.
+-  nexus_ask_button_ = AddChildView(std::make_unique<TabStripControlButton>(
++  nexus_ask_button_ = AddChildView(std::make_unique<TabStripNudgeButton>(
+       browser_.get(),
+       base::BindRepeating(&ToolbarView::OnNexusAskButtonPressed,
+                           base::Unretained(this)),
+-      kNexusCrosshairIcon, std::u16string(u"Ask Nexus"), Edge::kNone,
+-      Edge::kNone));
++      TabStripNudgeButton::PressedCallback(), u"Ask Nexus",
++      ui::ElementIdentifier(), Edge::kNone, kNexusCrosshairIcon,
++      /*show_close_button=*/false));
++  // A nudge button starts at width 0 and is meant to be animated open; Nexus keeps it open.
++  nexus_ask_button_->SetWidthFactor(1.0f);
++  // In a narrow window the whole button drops out instead of being squashed or overlapping its neighbours.
++  nexus_ask_button_->SetProperty(
++      views::kFlexBehaviorKey,
++      views::FlexSpecification(views::MinimumFlexSizeRule::kPreferredSnapToZero,
++                               views::MaximumFlexSizeRule::kPreferred));
+   nexus_ask_button_->SetTooltipText(u"Ask Nexus");
+   nexus_ask_button_->GetViewAccessibility().SetName(u"Ask Nexus");
+   nexus_ask_button_->SetVisible(false);
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.h b/chrome/browser/ui/views/toolbar/toolbar_view.h
+index 1d7c03e..6235e33 100644
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -67,7 +67,7 @@ class ToolbarController;
+ class ToolbarDivider;
+ class OverflowButton;
+ class PerformanceInterventionButton;
+-class TabStripControlButton;
++class TabStripNudgeButton;
+ class TabStripRegionView;
+ 
+ namespace views {
+@@ -466,7 +466,7 @@ class ToolbarView : public views::AccessiblePaneView,
+   // |location_bar_| is guaranteed to exist. These pointers are owned by the
+   // view hierarchy.
+   raw_ptr<ToolbarButton> vertical_tabs_collapse_button_ = nullptr;
+-  raw_ptr<TabStripControlButton> nexus_ask_button_ = nullptr;
++  raw_ptr<TabStripNudgeButton> nexus_ask_button_ = nullptr;
+   raw_ptr<ToolbarButton> contextual_tasks_button_ = nullptr;
+   raw_ptr<ToolbarButton> back_ = nullptr;
+   raw_ptr<ToolbarButton> forward_ = nullptr;

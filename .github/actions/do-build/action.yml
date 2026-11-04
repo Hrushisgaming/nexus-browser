@@ -38,6 +38,14 @@ runs:
       shell: bash
       working-directory: helium-macos
 
+    - name: Build "Convert to it!" for nexus://convert
+      if: ${{ steps.build.outputs.status == 'finished' }}
+      continue-on-error: true
+      run: |
+        npm install -g bun
+        bash nexus-rebrand/fetch_convert.sh
+      shell: bash
+
     - name: Pack the build (and make the Nexus dmg if the build finished)
       id: bake
       run: |

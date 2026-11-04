@@ -1,0 +1,87 @@
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+index 90c5136..f478457 100644
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -387,6 +387,7 @@
+ #include "content/public/common/content_descriptors.h"
+ #include "content/public/common/content_features.h"
+ #include "content/public/common/content_switches.h"
++#include "content/public/common/url_constants.h"
+ #include "content/public/common/url_utils.h"
+ #include "content/public/common/window_container_type.mojom-shared.h"
+ #include "device/vr/buildflags/buildflags.h"
+@@ -1532,6 +1533,62 @@ std::optional<GURL> GetIwaCustomManifestUrl(
+ }
+ #endif  // BUILDFLAG(ENABLE_EXTENSIONS_CORE) && !BUILDFLAG(IS_ANDROID)
+ 
++
++#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++// Nexus: nexus://ai (the full-tab "Chat with Nexus") and nexus://convert ("Convert to it!") are pages of
++// built-in extensions. Internally they are chrome://ai and chrome://convert (the nexus:// spelling is the
++// display name of chrome://, see override-chrome-protocol.patch); they are rewritten to the extension page,
++// and the address bar keeps showing nexus://ai / nexus://convert.
++struct NexusPage {
++  const char* host;           // chrome://<host>
++  const char* extension_id;   // fixed by the "key" in the extension's manifest.json
++  const char* page;           // page inside the extension
++};
++constexpr NexusPage kNexusPages[] = {
++    {"ai", "iokkgaheigikheidihfidjdkocoaplco", "ai.html"},
++    {"convert", "pgbljlnilnkifmkocgkemphhlnnbnfnl", "index.html"},
++};
++
++bool HandleNexusPages(GURL* url, content::BrowserContext* browser_context) {
++  if (!url->SchemeIs(content::kChromeUIScheme) &&
++      !url->SchemeIs(content::kHeliumUIScheme)) {
++    return false;
++  }
++  for (const NexusPage& page : kNexusPages) {
++    if (url->host() != page.host) {
++      continue;
++    }
++    std::string target = base::StrCat({extensions::kExtensionScheme, "://",
++                                       page.extension_id, "/", page.page});
++    if (url->has_query()) {
++      base::StrAppend(&target, {"?", url->query()});
++    }
++    if (url->has_ref()) {
++      base::StrAppend(&target, {"#", url->ref()});
++    }
++    *url = GURL(target);
++    return true;
++  }
++  return false;
++}
++
++bool ReverseNexusPages(GURL* url, content::BrowserContext* browser_context) {
++  if (!url->SchemeIs(extensions::kExtensionScheme)) {
++    return false;
++  }
++  for (const NexusPage& page : kNexusPages) {
++    if (url->host() == page.extension_id &&
++        url->path() == std::string("/") + page.page) {
++      *url = GURL(base::StrCat({content::kChromeUIScheme, "://", page.host,
++                                url->has_query() ? "/?" : "",
++                                url->has_query() ? url->query() : ""}));
++      return true;
++    }
++  }
++  return false;
++}
++#endif  // BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++
+ }  // namespace
+ 
+ // static
+@@ -5064,6 +5121,11 @@ void ChromeContentBrowserClient::BrowserURLHandlerCreated(
+                           &search::HandleNewTabURLReverseRewrite);
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
++#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
++  // Nexus: nexus://ai and nexus://convert.
++  handler->AddHandlerPair(&HandleNexusPages, &ReverseNexusPages);
++#endif
++
+   // chrome: & friends.
+   handler->AddHandlerPair(&ChromeContentBrowserClient::HandleWebUI,
+                           &ChromeContentBrowserClient::HandleWebUIReverse);

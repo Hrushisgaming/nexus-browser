@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Convert with Nexus",
+  "version": "1.0.0",
+  "description": "Convert to it! built into Nexus: convert files between formats, entirely on this computer. Opens at nexus://convert.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAohPRiAkkGtp9rNaBJGwXBvKalebF6ppu4iCY0SzbpYW3tnNeFxth1NYAqMEd5uXvUQYbDF9sA3im1WF0CSoaZ2NtMPTBclPu/T4BFHeryAHODk1ood4XAB5YeShb5qHhHc0Nz5ATh+cKvhbrKrsFbuWwehsi/HyNn0aVsT3yeb8mUF8q7my/3QRZabu93+3Em7+CTH8bbsEmVz8yb7aKGJIVwwh8lc9510skxx/i2MsT/fdiWQd/IK8tuCysk+48ejs2bEuO9waZLU3s+0xLbAHvrvBf1jp10uMhDDfHHLwg+GiPs748U4fial6uV/rZoTb1UGV3AkU+Os+6bReG7QIDAQAB",
+  "minimum_chrome_version": "114",
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "background": { "service_worker": "nexus-redirect.js" },
+  "permissions": ["tabs"],
+  "cross_origin_embedder_policy": { "value": "require-corp" },
+  "cross_origin_opener_policy": { "value": "same-origin" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
+  }
+}
