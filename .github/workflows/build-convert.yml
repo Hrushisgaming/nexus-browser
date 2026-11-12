@@ -1,0 +1,39 @@
+name: Build Convert with Nexus (commit the prebuilt extension)
+
+# Builds "Convert to it!" (github.com/p2r3/convert, GPL-2.0) with nexus-rebrand/fetch_convert.sh and commits the result
+# into nexus-rebrand/nexus-convert/ on this branch, so that build_nexus_dmg.sh finds index.html and includes nexus://convert
+# without anyone needing bun. Run it from Actions > this workflow > Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      convert_ref:
+        description: "p2r3/convert branch, tag or commit to build"
+        default: "main"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Build the converter
+        env:
+          CONVERT_REF: ${{ inputs.convert_ref }}
+        run: ./nexus-rebrand/fetch_convert.sh
+      - name: Check the result
+        run: |
+          test -f nexus-rebrand/nexus-convert/index.html
+          test -f nexus-rebrand/nexus-convert/manifest.json
+          du -sh nexus-rebrand/nexus-convert
+      - name: Commit the prebuilt extension
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f nexus-rebrand/nexus-convert
+          if git diff --cached --quiet; then echo "Nothing changed."; exit 0; fi
+          git commit -m "Add prebuilt Convert with Nexus (p2r3/convert ${{ inputs.convert_ref }})"
+          git push

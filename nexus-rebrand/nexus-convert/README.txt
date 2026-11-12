@@ -10,3 +10,7 @@ After fetch_convert.sh: rebuild Nexus (build_nexus_dmg.sh, or the GitHub Actions
 Not tested yet: the extension rules (no remote scripts, WebAssembly allowed, cross-origin isolation) were written from the
 converter's own settings. If a conversion tool does nothing, open nexus://extensions, press "Inspect views" for
 "Convert with Nexus" and send me the console errors.
+
+Prebuilt copy: the GitHub workflow "Build Convert with Nexus" (.github/workflows/build-convert.yml) runs fetch_convert.sh on
+GitHub and commits the result into this folder. Run it once from the Actions tab, then pull; build_nexus_dmg.sh will then
+include nexus://convert without you having bun.
