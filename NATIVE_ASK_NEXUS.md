@@ -32,3 +32,14 @@ the line, and the patch is only ~280 lines.
 3. Put that .dmg in nexus-rebrand/base/ and run nexus-rebrand/build_nexus_dmg.sh to rebrand it into Nexus.dmg.
    (nexus_patch.py edits resources by content, so it should work on your own build; if it complains, send me the message.)
 4. If the compile fails: send me the first error lines and I'll fix the patch.
+
+## Update: visible in vertical/dynamic/compact layouts, oval style, AI Mode
+- helium-macos/patches/nexus/native-ask-button-pill.patch (last line of patches/series): gives the toolbar Ask Nexus button a
+  rounded tonal fill with a thin outline (the Ask Gemini look) and side margins, re-checks its visibility on every toolbar layout
+  (the layout state can settle after the first check), and compares against the overflow layout's CanBeVisible() instead of
+  GetVisible() so a narrow window cannot make it flip back and forth.
+  NOT compiled. If it does not apply or compile, remove its line from patches/series and send the first error lines.
+  The colors/APIs used: ui::kColorSysTonalContainer, ui::kColorSysTonalOutline, views::CreateRoundedRectBackground/Border.
+- AI Mode search option: the "Chat with Nexus" extension (1.7.0) now has an address-bar keyword. Type "ai", press Space or Tab,
+  type a question and press Enter: it opens nexus://ai (the full-tab chat) and sends the question. Extension-only, no Chromium patch.
+  Helium removes Chrome's own Google "AI Mode" button from the address bar dropdown; this keyword is Nexus's replacement.

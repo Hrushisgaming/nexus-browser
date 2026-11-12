@@ -29,3 +29,4 @@ nexus/native-ask-button-vertical.patch
 nexus/builtin-vault-vpn.patch
 nexus/native-ask-button-style.patch
 nexus/nexus-internal-pages.patch
+nexus/native-ask-button-pill.patch

@@ -616,6 +616,7 @@ async function takeInbox() {
   if (!inbox || Date.now() - inbox.ts > 30000) return;
   await chrome.storage.session.remove('inbox');
   show('chat');
+  if (inbox.mode === 'query') { send(inbox.text); return; }
   if (inbox.mode === 'selection') { $('input').value = `About this text:\n\n> ${inbox.text.trim().replace(/\n/g, '\n> ')}\n\n`; }
   else { pageOn = true; renderChips(); $('input').value = 'Summarize this page.'; }
   autosize(); $('input').focus();

@@ -131,3 +131,15 @@ const AI_URL = /^(nexus|helium|chrome):\/\/ai\/?(#.*)?$/i;
 const goAi = (tabId, url) => { if (url && AI_URL.test(url)) chrome.tabs.update(tabId, { url: chrome.runtime.getURL('ai.html') }).catch(() => {}); };
 chrome.tabs.onUpdated.addListener((tabId, info, tab) => goAi(tabId, info.url || (info.status === 'loading' ? tab.url : '')));
 chrome.tabs.onCreated.addListener((tab) => goAi(tab.id, tab.pendingUrl || tab.url));
+
+// AI Mode in the address bar: type "ai", press Space or Tab, then your question. Enter opens the full-tab chat and sends it.
+chrome.omnibox.setDefaultSuggestion({ description: 'Nexus AI Mode: ask <match>%s</match>' });
+chrome.omnibox.onInputChanged.addListener((text, suggest) => {
+  const q = text.trim();
+  suggest(q ? [{ content: q, description: 'Ask Nexus AI: <match>' + q.replace(/[&<>"']/g, ' ') + '</match>' }] : []);
+});
+chrome.omnibox.onInputEntered.addListener(async (text) => {
+  const q = text.trim();
+  if (q) await chrome.storage.session.set({ inbox: { mode: 'query', text: q, ts: Date.now() } });
+  await chrome.tabs.create({ url: chrome.runtime.getURL('ai.html') });
+});

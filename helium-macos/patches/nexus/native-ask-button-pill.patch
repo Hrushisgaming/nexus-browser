@@ -1,0 +1,50 @@
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -68,4 +68,7 @@
+ #include "chrome/browser/ui/side_panel/side_panel_ui.h"
+ #include "chrome/browser/ui/views/tabs/tab_strip_nudge_button.h"
+ #include "extensions/common/extension_id.h"
++#include "ui/color/color_id.h"
++#include "ui/views/background.h"
++#include "ui/views/border.h"
+ #include "chrome/browser/ui/tabs/public/tab_features.h"
+@@ -736,5 +736,12 @@
+   nexus_ask_button_->SetTooltipText(u"Ask Nexus");
+   nexus_ask_button_->GetViewAccessibility().SetName(u"Ask Nexus");
++  // The oval around "Ask Nexus", like the Ask Gemini button: a tonal rounded fill with a thin outline,
++  // and a little room on both sides so it does not touch the buttons next to it.
++  nexus_ask_button_->SetBackground(views::CreateRoundedRectBackground(
++      ui::kColorSysTonalContainer, /*radius=*/16.0f));
++  nexus_ask_button_->SetBorder(views::CreateRoundedRectBorder(
++      /*thickness=*/1, /*corner_radius=*/16.0f, ui::kColorSysTonalOutline));
++  nexus_ask_button_->SetProperty(views::kMarginsKey, gfx::Insets::VH(0, 4));
+   nexus_ask_button_->SetVisible(false);
+ 
+   if (is_glic_left_of_profile &&
+@@ -2072,5 +2072,9 @@
+             : 0);
+   }
++
++  // The layout state (vertical, dynamic, compact) can settle after the first UpdateToolbarLayout(), so
++  // check the Ask Nexus button again here. It only changes anything when its wanted state changed.
++  UpdateNexusAskButton();
+ 
+   const int margin =
+       is_maximized_or_fullscreen && !collapse_button_on_leading_edge
+@@ -2350,8 +2350,12 @@
+   const bool zen_hide = browser_view_->IsZenModeEnabledForLayout() &&
+                         !browser_view_->IsZenModeSideChromePinned();
+-  nexus_ask_button_->SetVisible(in_toolbar &&
+-                                nexus_ask_button_shown_.GetValue() &&
+-                                !zen_hide);
++  const bool should_show =
++      in_toolbar && nexus_ask_button_shown_.GetValue() && !zen_hide;
++  // Compare with what the overflow layout allows, not with GetVisible(): the layout hides the button itself
++  // when the window is narrow, and forcing it visible again would make the layout run in a loop.
++  if (should_show != layout_manager_->CanBeVisible(nexus_ask_button_)) {
++    nexus_ask_button_->SetVisible(should_show);
++  }
+ }
+ 
+ void ToolbarView::UpdateVerticalTabsCollapseButton() {
