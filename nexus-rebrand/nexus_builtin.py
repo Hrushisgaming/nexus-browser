@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Make Chat with Nexus and Proton VPN part of Nexus.app (stdlib only).
+"""Make Chat with Nexus, Nexus Authenticator and Proton VPN part of Nexus.app (stdlib only).
 usage: nexus_builtin.py /path/to/Nexus.app [--crx vendor/proton-vpn.crx] [--native]
 
-  --native   the app was built from the Nexus source (helium-macos/patches/nexus/builtin-vault-vpn.patch), so Nexus Vault and
-             Proton VPN are already inside the browser like uBlock Origin. Then only Chat with Nexus is added here.
+  --native   the app was built from the Nexus source (helium-macos/patches/nexus/builtin-vault-vpn.patch), so Nexus Vault,
+             Nexus Authenticator and Proton VPN are already inside the browser like uBlock Origin. Then only Chat with Nexus is added here.
 
 What it does, all inside the app bundle (run it BEFORE re-signing):
-  1. copies nexus-chat/ and nexus-vault/ into Contents/Resources/nexus-extensions/
+  1. copies nexus-chat/, nexus-vault/ and nexus-authenticator/ into Contents/Resources/nexus-extensions/
   2. unpacks the Proton VPN .crx into  .../nexus-extensions/proton-vpn  (keeps its real Web Store id)
   3. swaps the app's start-up program for a small launcher that starts the real browser with
      --load-extension=<each folder above>, and pins their toolbar icons on a brand-new profile
@@ -17,6 +17,7 @@ import base64, hashlib, json, os, plistlib, shutil, stat, struct, sys, zipfile, 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROTON_ID = 'jplgfhpmjnbigmhklmmbgecoobifkmpa'
 VAULT_ID = 'aideengppkjlkhmlfabkigdahhogfbdi'
+AUTHENTICATOR_ID = 'akbamahfimlndcjkkonndelmldbnmefd'    # from the key in nexus-authenticator/manifest.json
 UBLOCK_ID = 'blockjmkbacgjkknlgpkjjiijinjdanf'      # Helium pins uBlock by default; a pins list we write must keep it
 
 LAUNCHER = r'''#!/bin/bash
@@ -120,7 +121,7 @@ def main(app, crx=None, native=False):
     pins = [UBLOCK_ID]
 
     # 1. Our own extensions (each manifest carries a fixed key, so the id is the same wherever the app lives)
-    own = [('nexus-chat', 'Chat with Nexus', True)] if native else [('nexus-chat', 'Chat with Nexus', True), ('nexus-vault', 'Nexus Vault', True)]
+    own = [('nexus-chat', 'Chat with Nexus', True)] if native else [('nexus-chat', 'Chat with Nexus', True), ('nexus-vault', 'Nexus Vault', True), ('nexus-authenticator', 'Nexus Authenticator', True)]
     # "Convert to it!" (nexus://convert): only when fetch_convert.sh has built it (it has no toolbar icon, so it is not pinned)
     if os.path.isfile(os.path.join(HERE, 'nexus-convert', 'index.html')): own.append(('nexus-convert', 'Convert with Nexus', False))
     else: print('  Convert to it!: not built yet (run fetch_convert.sh), skipped')
@@ -134,8 +135,8 @@ def main(app, crx=None, native=False):
 
     # 2. Proton VPN (optional: only when its .crx has been fetched)
     if native:
-        pins += [VAULT_ID, PROTON_ID]
-        print('  native build: Nexus Vault and Proton VPN are already inside the browser')
+        pins += [VAULT_ID, PROTON_ID, AUTHENTICATOR_ID]
+        print('  native build: Nexus Vault, Nexus Authenticator and Proton VPN are already inside the browser')
     elif crx and os.path.isfile(crx):
         eid, name, ver = unpack_crx(crx, os.path.join(root, 'proton-vpn'))
         if eid != PROTON_ID:

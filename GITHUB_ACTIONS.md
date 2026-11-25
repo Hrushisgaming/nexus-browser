@@ -16,16 +16,30 @@ Not run yet: I can't run GitHub Actions from here. If a run fails, send me the l
 
 ## Run
 1. Repo > **Actions** > **Build Nexus for macOS (arm64)** > **Run workflow**.
-2. Wait. The first job downloads Chromium, applies the patches, stages Nexus Vault + Proton VPN, and checks they are there.
+2. Wait. The first job downloads Chromium, applies the patches, stages Nexus Vault + Nexus Authenticator + Proton VPN, and checks they are there.
    Then the compile runs in chained jobs (each stops before GitHub's 6-hour limit, saves its progress, the next one resumes), up to 10.
 3. When the last job is green, open the run page > **Artifacts** > **Nexus-arm64-dmg**. Unzip it to get `nexus_<version>_arm64-macos.dmg`.
+
+## Apply a patch from the browser (no git on your Mac)
+Workflow: `.github/workflows/apply-patch.yml` ("Apply patch and build Nexus"). Create it once: Add file > Create new file, name it
+`.github/workflows/apply-patch.yml`, paste the contents, commit.
+
+Then, for every patch (a `.patch` file from `git format-patch` or `git diff --binary`):
+1. Add file > Upload files, drop the `.patch` file at the top of the repo (or into `incoming-patches/`), commit to `main`.
+2. The workflow applies it, commits the result to `main`, deletes the `.patch` file and starts "Build Nexus for macOS (arm64)".
+   If the patch was uploaded before the workflow existed, run it by hand: Actions > Apply patch and build Nexus > Run workflow.
+3. When the build run is green, download the DMG from its Artifacts.
+
+Limits: a patch that does not apply is refused and nothing changes (the log says why). A patch that edits files in `.github/workflows/`
+is refused too, because GitHub's built-in token cannot change workflow files; edit those in the web editor. If `main` is protected, the
+push fails; use a branch or relax the rule.
 
 ## What it is
 - arm64 only, unsigned (ad-hoc signed), no release is published, no secrets are needed.
 - The compile produces Nexus directly (the source is already rebranded), so `nexus-rebrand/build_nexus_dmg.sh` is NOT run in CI
   (it expects a stock `Helium.app`). Instead the last job runs `nexus_builtin.py --native` on the compiled `Nexus.app` before signing:
   it adds Chat with Nexus and a small launcher that starts the real browser (renamed `NexusBrowser`) with that extension loaded.
-  Vault and Proton VPN are compiled in. This launcher step has only been tested on a fake app bundle, not on a real build.
+  Vault, Authenticator and Proton VPN are compiled in. This launcher step has only been tested on a fake app bundle, not on a real build.
 - First launch on your Mac: right-click the app > Open (it is not notarized).
 
 ## If it fails

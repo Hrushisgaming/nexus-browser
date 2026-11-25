@@ -4,9 +4,10 @@
 usage: nexus_stage_builtin.py <chromium src dir> <nexus-rebrand dir>
 
 Puts these in <src>/third_party/nexus_builtin/ (see patches/nexus/builtin-vault-vpn.patch):
-  vault/       from <nexus-rebrand>/nexus-vault
-  proton_vpn/  unpacked from <nexus-rebrand>/vendor/proton-vpn.crx (downloaded once if it is not there)
-The browser then ships both inside itself, like uBlock Origin. Nothing is loaded at start-up.
+  vault/          from <nexus-rebrand>/nexus-vault
+  authenticator/  from <nexus-rebrand>/nexus-authenticator
+  proton_vpn/     unpacked from <nexus-rebrand>/vendor/proton-vpn.crx (downloaded once if it is not there)
+The browser then ships all three inside itself, like uBlock Origin. Nothing is loaded at start-up.
 """
 import importlib.util, json, os, shutil, sys, urllib.request
 
@@ -60,6 +61,14 @@ def main(src, rebrand):
     shutil.rmtree(vault, ignore_errors=True)
     shutil.copytree(vault_src, vault, ignore=shutil.ignore_patterns('.DS_Store', 'README.txt', '__MACOSX'))
 
+    # Nexus Authenticator
+    auth_src = os.path.join(rebrand, 'nexus-authenticator')
+    if not os.path.isfile(os.path.join(auth_src, 'manifest.json')):
+        fail('nexus-authenticator/manifest.json not found in ' + rebrand)
+    auth = os.path.join(out, 'authenticator')
+    shutil.rmtree(auth, ignore_errors=True)
+    shutil.copytree(auth_src, auth, ignore=shutil.ignore_patterns('.DS_Store', 'README.txt', '__MACOSX'))
+
     # Proton VPN
     crx = os.path.join(rebrand, 'vendor', 'proton-vpn.crx')
     if not os.path.isfile(crx) or os.path.getsize(crx) == 0:
@@ -75,10 +84,10 @@ def main(src, rebrand):
     if m.get('manifest_version') != 3:
         print('nexus_stage_builtin: note: Proton VPN manifest_version is %s' % m.get('manifest_version'))
 
-    total = sum(len(fs) for _, _, fs in os.walk(vault)) + sum(len(fs) for _, _, fs in os.walk(proton))
+    total = sum(len(fs) for d in (vault, auth, proton) for _, _, fs in os.walk(d))
     if total > MAX_FILES:
         fail('%d files is more than the %d ids reserved in resource_ids.spec; raise the size there' % (total, MAX_FILES))
-    print('nexus_stage_builtin: Nexus Vault + %s %s staged (%d files)' % (name, version, total))
+    print('nexus_stage_builtin: Nexus Vault + Nexus Authenticator + %s %s staged (%d files)' % (name, version, total))
 
 
 if __name__ == '__main__':

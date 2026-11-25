@@ -6,7 +6,7 @@ Two parts, side by side:
    helium-macos/helium-chromium/ - the official Helium patch set and tooling (github.com/imputnet/helium, commit 9aa23f3),
    which is the submodule helium-macos expects at that path. Both are GPL-3.0 (see their LICENSE files);
    code imported from ungoogled-chromium keeps its BSD 3-Clause license (LICENSE.ungoogled_chromium).
-2. nexus-rebrand/ - the Nexus changes (rebrand, setup-page logo, "Chat with Nexus" side panel extension, Nexus Vault, Proton VPN helper,
+2. nexus-rebrand/ - the Nexus changes (rebrand, setup-page logo, "Chat with Nexus" side panel extension, Nexus Vault, Nexus Authenticator, Proton VPN helper,
    build script). Everything here is plain-text source you can edit.
 
 What is NOT in this archive: the Chromium source itself. Helium is a set of patches applied to Chromium, and helium-macos downloads
@@ -22,4 +22,4 @@ Native Ask Nexus button (tab strip) is in NATIVE_ASK_NEXUS.md: a source patch fo
 
 Licensing: if you give a Nexus build to other people, keep the GPL-3.0 licenses and make the source of your changes available to them.
 
-Native built-in Vault and Proton VPN (compiled in like uBlock Origin) is in NATIVE_VAULT_VPN.md: a source patch for Helium, written but not yet compiled.
+Native built-in Vault, Authenticator and Proton VPN (compiled in like uBlock Origin) is in NATIVE_VAULT_VPN.md: a source patch for Helium, written but not yet compiled.

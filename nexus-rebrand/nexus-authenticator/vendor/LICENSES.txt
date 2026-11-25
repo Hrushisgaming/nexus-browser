@@ -1,0 +1,9 @@
+Third-party code bundled with Nexus Authenticator
+
+jsQR 1.4.0 (vendor/jsQR.js)
+  Copyright (c) Cosmo Wolfe. Licensed under the Apache License 2.0.
+  https://github.com/cozmo/jsQR
+
+qrcode-generator 2.0.4 (vendor/qrcode.js)
+  Copyright (c) 2009 Kazuhiko Arase. Licensed under the MIT license.
+  https://github.com/kazuhikoarase/qrcode-generator

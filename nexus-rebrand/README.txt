@@ -11,8 +11,9 @@ WHAT IS BUILT INTO Nexus.app
   - Chat with Nexus (AI side panel + the "Ask Nexus" page button, with a master switch in its settings, default on)
   (the crosshair is its icon everywhere: toolbar, panel header, "Ask Nexus" button)
   - Nexus Vault (passwords). Moving from the old loose Vault? See nexus-vault/README.txt first.
+  - Nexus Authenticator (2-step verification codes, compatible with Google Authenticator). See nexus-authenticator/README.txt.
   - Proton VPN
-  All three load automatically each time Nexus starts.
+  All four load automatically each time Nexus starts.
   Activity Monitor still lists "Helium" and "Helium Helper ...": those names are fixed inside the browser itself.
 
 OWN DATA AND OWN KEYCHAIN
@@ -39,4 +40,5 @@ FILES
   build_nexus_dmg.sh   the build            nexus_patch.py     renames Helium to Nexus
   nexus_builtin.py     bakes in the extensions and the launcher       nexus_pak.py   pak reader/writer
   nexus-chat/          the AI side panel    nexus-vault/       password manager      assets/   icons
+  nexus-authenticator/ 2-step codes (TOTP)
   base/                the Helium base      vendor/            Proton VPN download

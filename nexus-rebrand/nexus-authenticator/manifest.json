@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Nexus Authenticator",
+  "version": "1.0.0",
+  "description": "Two-factor codes on your Mac, compatible with Google Authenticator. Scan QR codes from anywhere on screen, import and export.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiTPtUnbRA7ToesHZEdYg/Y5kB/RZe2M370LKbMcSY9zp+jmwqXuoefLaP0dzKCf8O4t0oXl/92DKfd0GJWU1WHGfr9ePoxlry+Oe2u0FWVZuXOV+v4+MKpIDfhIw2Ibn/HWAUG4FYYDQsxybkqmuSGgNTNXIGwYu3eEPFZyKZ11LHGhZ/xjAsPhC/LYpVyEYP96dZ6lOj3RyM/21Yr6wO9YrTgjjTN/KWOXh/V7e4sUmamWDfbth4MCTap9XzRGcH0ep2RBAZ8w47RYYYE0lPGVB1yL3oF8gysuK/ErZQtl+6YGp8yLiR5cYO+tTgSgZMUNuL1N4uYPHBzcIdsS2xwIDAQAB",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Nexus Authenticator",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "alarms"
+  ],
+  "commands": {
+    "scan-screen": {
+      "suggested_key": {
+        "default": "Alt+Shift+Q"
+      },
+      "description": "Select a QR code on the page to scan"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

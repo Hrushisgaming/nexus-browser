@@ -46,21 +46,23 @@ index 7aedda24..4738e0cd 100644
  #include "third_party/ublock/resources/grit/ublock_resources.h"
  
  #if BUILDFLAG(IS_CHROMEOS)
-@@ -45,6 +47,8 @@ bool IsComponentExtensionAllowlisted(const std::string& extension_id) {
+@@ -45,6 +47,9 @@ bool IsComponentExtensionAllowlisted(const std::string& extension_id) {
        extension_misc::kInAppPaymentsSupportAppId,
        extension_misc::kPdfExtensionId,
        helium::kUBlockOriginComponentId,
 +      helium::kNexusVaultComponentId,
 +      helium::kNexusProtonVpnComponentId,
++      helium::kNexusAuthenticatorComponentId,
        helium::kExtstoreFixupsExtensionId,
  #if BUILDFLAG(IS_CHROMEOS)
        extension_misc::kAssessmentAssistantExtensionId,
-@@ -107,6 +111,8 @@ bool IsComponentExtensionAllowlisted(int manifest_resource_id) {
+@@ -107,6 +112,9 @@ bool IsComponentExtensionAllowlisted(int manifest_resource_id) {
      case IDR_READING_MODE_GDOCS_HELPER_MANIFEST:
      case IDR_WEBSTORE_MANIFEST:
      case IDR_UBLOCK_MANIFEST_JSON:
 +    case IDR_NEXUS_BUILTIN_VAULT_MANIFEST_JSON:
 +    case IDR_NEXUS_BUILTIN_PROTON_VPN_MANIFEST_JSON:
++    case IDR_NEXUS_BUILTIN_AUTHENTICATOR_MANIFEST_JSON:
      case IDR_EXTSTORE_FIXUPS_MANIFEST_JSON:
  
  #if BUILDFLAG(IS_CHROMEOS)
@@ -76,11 +78,11 @@ index 701e0df1..970cbc94 100644
  #include "third_party/ublock/resources/grit/ublock_resources.h"
  
  #if BUILDFLAG(IS_CHROMEOS)
-@@ -626,6 +627,37 @@ void ComponentLoader::AddUBlock() {
+@@ -626,6 +627,39 @@ void ComponentLoader::AddUBlock() {
    }
  }
  
-+// Nexus: Nexus Vault and Proton VPN, built in the same way as uBlock Origin.
++// Nexus: Nexus Vault, Proton VPN and Nexus Authenticator, built in the same way as uBlock Origin.
 +void ComponentLoader::AddNexusBuiltins() {
 +  static constexpr struct {
 +    int manifest_resource_id;
@@ -91,6 +93,8 @@ index 701e0df1..970cbc94 100644
 +       FILE_PATH_LITERAL("nexus_builtin/vault"), "Nexus Vault"},
 +      {IDR_NEXUS_BUILTIN_PROTON_VPN_MANIFEST_JSON,
 +       FILE_PATH_LITERAL("nexus_builtin/proton_vpn"), "Proton VPN"},
++      {IDR_NEXUS_BUILTIN_AUTHENTICATOR_MANIFEST_JSON,
++       FILE_PATH_LITERAL("nexus_builtin/authenticator"), "Nexus Authenticator"},
 +  };
 +
 +  for (const auto& builtin : kNexusBuiltins) {
@@ -114,7 +118,7 @@ index 701e0df1..970cbc94 100644
  void ComponentLoader::AddExtstoreFixups() {
    Add(IDR_EXTSTORE_FIXUPS_MANIFEST_JSON,
        base::FilePath(FILE_PATH_LITERAL("extstore_fixups")));
-@@ -709,6 +741,7 @@ void ComponentLoader::AddDefaultComponentExtensions(
+@@ -709,6 +743,7 @@ void ComponentLoader::AddDefaultComponentExtensions(
    if (!skip_session_components) {
      AddWebStoreApp();
      AddUBlock();
@@ -159,7 +163,7 @@ new file mode 100644
 index 00000000..a7a1a8dc
 --- /dev/null
 +++ b/components/helium_services/nexus_extension_ids.h
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,46 @@
 +// Nexus: ids of the extensions that are built into the browser as component
 +// extensions (see third_party/nexus_builtin).
 +
@@ -185,13 +189,22 @@ index 00000000..a7a1a8dc
 +    // SHA1(kNexusProtonVpnComponentId)
 +    "85AEFA346C73596D7164DC4A16DC7F38BD1A0A46";
 +
++// Nexus Authenticator. Fixed by the "key" in nexus-authenticator/manifest.json.
++inline constexpr char kNexusAuthenticatorComponentId[] =
++    "akbamahfimlndcjkkonndelmldbnmefd";
++inline constexpr char kNexusAuthenticatorComponentIdHashed[] =
++    // SHA1(kNexusAuthenticatorComponentId)
++    "B1F21E59141F85556ECA2F034DDDC52325900BE6";
++
 +inline constexpr bool IsNexusBuiltinExtensionId(std::string_view id) {
-+  return id == kNexusVaultComponentId || id == kNexusProtonVpnComponentId;
++  return id == kNexusVaultComponentId || id == kNexusProtonVpnComponentId ||
++         id == kNexusAuthenticatorComponentId;
 +}
 +
 +inline constexpr bool IsNexusBuiltinExtensionIdHashed(std::string_view hashed) {
 +  return hashed == kNexusVaultComponentIdHashed ||
-+         hashed == kNexusProtonVpnComponentIdHashed;
++         hashed == kNexusProtonVpnComponentIdHashed ||
++         hashed == kNexusAuthenticatorComponentIdHashed;
 +}
 +
 +}  // namespace helium
@@ -222,7 +235,7 @@ index c1b877ee..3a6d196a 100644
  #include "components/pref_registry/pref_registry_syncable.h"
  #include "components/prefs/pref_service.h"
  #include "components/supervised_user/core/common/buildflags.h"
-@@ -2254,7 +2255,10 @@ void ExtensionPrefs::RegisterProfilePrefs(
+@@ -2254,7 +2255,11 @@ void ExtensionPrefs::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterDictionaryPref(pref_names::kExtensions);
    registry->RegisterListPref(pref_names::kPinnedExtensions,
@@ -230,7 +243,8 @@ index c1b877ee..3a6d196a 100644
 +                             base::ListValue()
 +                                 .Append(helium::kUBlockOriginComponentId)
 +                                 .Append(helium::kNexusVaultComponentId)
-+                                 .Append(helium::kNexusProtonVpnComponentId),
++                                 .Append(helium::kNexusProtonVpnComponentId)
++                                 .Append(helium::kNexusAuthenticatorComponentId),
                               user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterListPref(pref_names::kDeletedComponentExtensions);
    registry->RegisterDictionaryPref(kExtensionsBlocklistUpdate);
@@ -257,7 +271,7 @@ index baf2c897..a9fd390a 100644
      return extension_id == helium::kUBlockOriginComponentId;
    }
  
-+  // Nexus: the built-in extensions (Nexus Vault, Proton VPN).
++  // Nexus: the built-in extensions (Nexus Vault, Proton VPN, Nexus Authenticator).
 +  static inline bool IsNexusBuiltinComponent(std::string_view extension_id) {
 +    return helium::IsNexusBuiltinExtensionId(extension_id);
 +  }
@@ -296,8 +310,8 @@ new file mode 100644
 index 00000000..c0c3aecf
 --- /dev/null
 +++ b/third_party/nexus_builtin/BUILD.gn
-@@ -0,0 +1,51 @@
-+# Nexus: packs the built-in extensions (Nexus Vault, Proton VPN) into a pak,
+@@ -0,0 +1,52 @@
++# Nexus: packs the built-in extensions (Nexus Vault, Proton VPN, Nexus Authenticator) into a pak,
 +# the same way third_party/ublock packs uBlock Origin.
 +
 +import("//ui/webui/resources/tools/generate_grd.gni")
@@ -316,6 +330,7 @@ index 00000000..c0c3aecf
 +    "generate_file_list.py",
 +    "vault/manifest.json",
 +    "proton_vpn/manifest.json",
++    "authenticator/manifest.json",
 +  ]
 +  outputs = [ file_list ]
 +}
@@ -353,7 +368,7 @@ new file mode 100644
 index 00000000..717bc768
 --- /dev/null
 +++ b/third_party/nexus_builtin/README.chromium
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,19 @@
 +Name: Nexus built-in extensions
 +Short Name: nexus_builtin
 +URL: https://github.com/imputnet/helium
@@ -365,8 +380,9 @@ index 00000000..717bc768
 +
 +Description:
 +Extensions that ship inside Nexus as component extensions (the same way
-+third_party/ublock ships uBlock Origin): "vault" (Nexus Vault) and
-+"proton_vpn" (Proton VPN). The extension folders are NOT part of the patch.
++third_party/ublock ships uBlock Origin): "vault" (Nexus Vault), "proton_vpn"
++(Proton VPN) and "authenticator" (Nexus Authenticator). The extension folders
++are NOT part of the patch.
 +They are copied in before the build by nexus_stage_builtin.py.
 +
 +Local Modifications:
@@ -379,7 +395,7 @@ index 00000000..5d5feed9
 +++ b/third_party/nexus_builtin/generate_file_list.py
 @@ -0,0 +1,40 @@
 +# Nexus: lists every file of the built-in extensions in this folder
-+# (vault/ and proton_vpn/) for grit. Same idea as third_party/ublock.
++# (vault/, proton_vpn/ and authenticator/) for grit. Same idea as third_party/ublock.
 +#
 +# usage: generate_file_list.py <src dir> <out json>
 +
@@ -397,7 +413,7 @@ index 00000000..5d5feed9
 +    '*/.DS_Store',
 +    '*/_metadata/*',
 +)
-+EXTENSION_DIRS = ('vault', 'proton_vpn')
++EXTENSION_DIRS = ('vault', 'proton_vpn', 'authenticator')
 +
 +src = Path(sys.argv[1])
 +out_file = sys.argv[2]

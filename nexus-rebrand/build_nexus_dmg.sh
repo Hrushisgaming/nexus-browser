@@ -4,7 +4,7 @@
 #   ./build_nexus_dmg.sh                       uses the Helium dmg in base/ (or ~/Downloads, or downloads one)
 #   ./build_nexus_dmg.sh /path/to/helium.dmg   uses that one instead
 #   ./build_nexus_dmg.sh --refresh-proton      also fetches a fresh Proton VPN extension
-#   ./build_nexus_dmg.sh --native              the base dmg was built from the Nexus source (Vault and Proton VPN are already inside it)
+#   ./build_nexus_dmg.sh --native              the base dmg was built from the Nexus source (Vault, Authenticator and Proton VPN are already inside it)
 #
 # Where the Helium base comes from, first match wins:
 #   1. the path you pass          2. base/helium_*arm64-macos.dmg in this folder (keep a copy there!)
@@ -63,8 +63,8 @@ xattr -cr "$STAGE/Nexus.app"
 # ---- 4. change it into Nexus, add the built-in extensions ----
 echo "==> Applying Nexus changes"
 python3 nexus_patch.py "$STAGE/Nexus.app"
-echo "==> Building in the AI side panel, Nexus Vault and Proton VPN"
-[ -d nexus-chat ] && [ -d nexus-vault ] || { echo "nexus-chat or nexus-vault folder missing next to this script"; exit 1; }
+echo "==> Building in the AI side panel, Nexus Vault, Nexus Authenticator and Proton VPN"
+[ -d nexus-chat ] && [ -d nexus-vault ] && [ -d nexus-authenticator ] || { echo "nexus-chat, nexus-vault or nexus-authenticator folder missing next to this script"; exit 1; }
 if [ "$NATIVE" = 1 ]; then python3 nexus_builtin.py "$STAGE/Nexus.app" --native
 else python3 nexus_builtin.py "$STAGE/Nexus.app" ${CRX:+--crx "$CRX"}; fi
 
