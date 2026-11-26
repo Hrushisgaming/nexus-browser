@@ -64,7 +64,7 @@ xattr -cr "$STAGE/Nexus.app"
 echo "==> Applying Nexus changes"
 python3 nexus_patch.py "$STAGE/Nexus.app"
 echo "==> Building in the AI side panel, Nexus Vault, Nexus Authenticator and Proton VPN"
-[ -d nexus-chat ] && [ -d nexus-vault ] && [ -d nexus-authenticator ] || { echo "nexus-chat, nexus-vault or nexus-authenticator folder missing next to this script"; exit 1; }
+[ -d nexus-chat ] && [ -d nexus-vault ] && [ -d nexus-authenticator ] && [ -d nexus-core-connect ] || { echo "nexus-chat, nexus-vault, nexus-authenticator or nexus-core-connect folder missing next to this script"; exit 1; }
 if [ "$NATIVE" = 1 ]; then python3 nexus_builtin.py "$STAGE/Nexus.app" --native
 else python3 nexus_builtin.py "$STAGE/Nexus.app" ${CRX:+--crx "$CRX"}; fi
 

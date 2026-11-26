@@ -1,0 +1,35 @@
+name: Build Nexus for Linux (x86_64 + arm64)
+
+# Run it from the Actions tab: "Build Nexus for Linux" -> "Run workflow", or let "Build Nexus (all platforms)" call it.
+# Result: artifacts "nexus-<version>-<arch>-AppImage" and "...-linux" (tar.xz). Unsigned.
+# NOT BUILT YET: written from Helium's Linux CI, never compiled here. If a run fails, send the log of the failed step.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        required: false
+        description: "Runner image to use"
+        default: "ubuntu-latest"
+  workflow_call:
+    inputs:
+      runner:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Nexus (${{ matrix.arch }})
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+      max-parallel: 2
+      fail-fast: true
+    uses: ./.github/workflows/linux-steps.yml
+    with:
+      arch: ${{ matrix.arch }}
+      runs-on: ${{ inputs.runner || 'ubuntu-latest' }}

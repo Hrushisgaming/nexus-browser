@@ -1,0 +1,47 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { width: 320px; margin: 0; padding: 14px; font: 13px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; background: #0f1524; color: #e6ebf5; }
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+h1 { font-size: 14px; margin: 0; font-weight: 600; }
+.status { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; flex: none; }
+.dot.connected { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+.dot.connecting, .dot.disconnected { background: #f59e0b; }
+.dot.paused { background: #94a3b8; }
+.detail { margin: 4px 0 10px; color: #9aa7c0; min-height: 1em; }
+label { display: block; margin: 10px 0 4px; color: #9aa7c0; font-size: 12px; }
+input[type=text], input:not([type]) { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #2a3652; background: #151d31; color: inherit; font: inherit; }
+#code { font-size: 22px; letter-spacing: 6px; text-align: center; font-variant-numeric: tabular-nums; }
+input:focus { outline: 2px solid #3b82f6; outline-offset: 0; }
+details { margin-top: 8px; }
+summary { cursor: pointer; color: #9aa7c0; }
+button { padding: 8px 12px; border-radius: 8px; border: 1px solid #2a3652; background: #1a2440; color: inherit; font: inherit; cursor: pointer; }
+button:hover { background: #222f52; }
+button.primary { width: 100%; margin-top: 12px; background: #2563eb; border-color: #2563eb; font-weight: 600; }
+button.primary:hover { background: #1d4ed8; }
+button.danger { color: #fca5a5; }
+button:disabled { opacity: .6; cursor: default; }
+.hint { color: #7b88a3; font-size: 12px; margin: 10px 0 0; }
+.row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #1f2a45; }
+.row span { color: #9aa7c0; }
+.row b { font-weight: 500; text-align: right; word-break: break-all; }
+.switch { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; color: #e6ebf5; font-size: 13px; }
+.buttons { display: flex; gap: 8px; }
+.buttons button { flex: 1; }
+.error { color: #fca5a5; margin: 10px 0 0; min-height: 1em; }
+
+/* --- v0.2: safety, send-to-nexus, activity --- */
+body { max-height: 600px; overflow-y: auto; }
+select, textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #2a3652; background: #151d31; color: inherit; font: inherit; }
+textarea { resize: vertical; margin-bottom: 8px; }
+select { margin-bottom: 8px; }
+.card { margin: 12px 0; padding: 10px; border: 1px solid #1f2a45; border-radius: 10px; background: #121a2e; }
+.card-title { font-weight: 600; margin-bottom: 6px; }
+.card .hint { margin: 0 0 8px; }
+.muted { color: #7b88a3; font-weight: 400; }
+.switch small { color: #7b88a3; }
+.activity { list-style: none; margin: 8px 0; padding: 0; max-height: 170px; overflow-y: auto; font-size: 12px; }
+.activity li { padding: 4px 0; border-bottom: 1px solid #1a233b; display: flex; flex-direction: column; }
+.activity small { color: #9aa7c0; }
+.activity .error span, .activity .denied span, .activity .blocked span { color: #fca5a5; }
+details > button { margin-top: 4px; }

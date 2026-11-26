@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nexus needs your OK</title>
+<link rel="stylesheet" href="popup.css">
+<style>
+  body.confirm { width: auto; min-height: 100vh; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #3b2a12; color: #fbbf24; font-size: 11px; font-weight: 600; margin: 0 6px 6px 0; }
+  .site { color: #9aa7c0; margin: 2px 0 12px; word-break: break-all; }
+  pre { white-space: pre-wrap; word-break: break-word; background: #151d31; border: 1px solid #2a3652; border-radius: 8px; padding: 8px 10px; max-height: 130px; overflow: auto; margin: 10px 0; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; }
+  .buttons { margin-top: 14px; }
+  .timer { color: #7b88a3; font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body class="confirm">
+  <h1 id="title">Nexus is asking to…</h1>
+  <p class="site" id="site"></p>
+  <div id="reasons"></div>
+  <p id="target"></p>
+  <pre id="detail" hidden></pre>
+  <div class="buttons">
+    <button id="deny" class="danger">Deny</button>
+    <button id="allow" class="primary" disabled>Allow once</button>
+  </div>
+  <p class="timer" id="timer"></p>
+  <script src="confirm-page.js"></script>
+</body>
+</html>

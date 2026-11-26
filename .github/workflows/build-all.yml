@@ -1,0 +1,40 @@
+name: Build Nexus (all platforms)
+
+# All-in-one: builds macOS (arm64), Linux (x86_64 + arm64) and Windows (x64 + arm64) in one run and
+# bundles every download into one artifact, "Nexus-All-Platforms". Each OS also has its own workflow
+# (build.yml = macOS, build-linux.yml, build-windows.yml) when you only need one.
+# Each Chromium compile takes many hours; the three OSes run in parallel. Nothing here has been compiled yet.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  macos:
+    uses: ./.github/workflows/build.yml
+  linux:
+    uses: ./.github/workflows/build-linux.yml
+  windows:
+    uses: ./.github/workflows/build-windows.yml
+
+  bundle:
+    name: Bundle every platform into one download
+    needs: [macos, linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: bundle
+      - name: Package
+        run: |
+          find bundle -maxdepth 2 | sort
+          cd bundle && zip -r ../Nexus-All-Platforms.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-All-Platforms
+          path: Nexus-All-Platforms.zip
+          compression-level: 0
+          if-no-files-found: error

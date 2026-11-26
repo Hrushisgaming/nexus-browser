@@ -46,3 +46,24 @@ push fails; use a branch or relax the rule.
 - "No space left on device": the free runner is too small. Tell me; it needs cleanup steps or a larger paid runner.
 - Out of monthly minutes: check the Actions usage page of the repo owner.
 - A C++ compile error: send me the first error lines. The Nexus patches have never been compiled.
+
+
+## Per-OS and all-in-one workflows
+
+| Workflow | What it builds | Notes |
+|---|---|---|
+| `build.yml` | macOS (arm64) | The original chained build; also callable from the all-in-one |
+| `build-linux.yml` | Linux x86_64 + arm64 (AppImage and tar.xz) | From Helium's Linux CI (0.19.2.1), unsigned |
+| `build-windows.yml` | Windows x64 + arm64 (installer, mini installer, portable zip) | From Helium's Windows CI (0.19.2.1), unsigned |
+| `build-all.yml` | All of the above, then bundles every download into `Nexus-All-Platforms` | Runs the three in parallel |
+
+Linux and Windows reuse the Nexus-branded `helium-macos/helium-chromium` (so the branding, Vault, Authenticator,
+Nexus Core Connect and the other Nexus patches are the same on every OS). `.github/actions/assemble-tree` lays the
+workspace out the way Helium's own build scripts expect (`helium-linux/` or `helium-windows/` plus that shared
+`helium-chromium`). **The Linux and Windows workflows have not been compiled yet.** If one fails, send the log of the failed step.
+
+## Nexus Core Connect (built in)
+
+`nexus-rebrand/nexus-core-connect` is the Nexus Core browser extension, shipped inside the browser like Vault and the
+Authenticator (fixed id `lcjcplddeeeaemcmkkijilbhnmlbdnam`, pinned to the toolbar). Open it, enter the pairing code from
+Nexus Core, and the agent can drive Nexus Browser through it. To update it, copy `browser-extension/` from the nexus-core repo.

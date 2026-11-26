@@ -1,0 +1,281 @@
+# shared build functions used by local and CI scripts
+
+if [ -n "${BASH_VERSION:-}" ]; then
+    __helium_shared_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    __helium_shared_dir="${0:a:h}"
+else
+    echo "shared.sh only supports bash and zsh" >&2
+    return 1 2>/dev/null || exit 1
+fi
+
+# resolve repo root directory regardless of caller location
+repo_root() {
+    cd "${__helium_shared_dir}/.." >/dev/null 2>&1 && pwd
+}
+
+setup_arch() {
+    _host_arch=$(uname -m)
+
+    if [ "$_host_arch" = "x86_64" ]; then
+        _host_arch="x64"
+    elif [ "$_host_arch" = "aarch64" ]; then
+        _host_arch="arm64"
+    fi
+
+    _build_arch="$_host_arch"
+    if [ -n "${ARCH:-}" ]; then
+        _build_arch="$ARCH"
+    fi
+
+    if [ "$_build_arch" = "x86_64" ]; then
+        _build_arch=x64
+    fi
+}
+
+setup_paths() {
+    _root_dir="$(repo_root)"
+    _main_repo="${_root_dir}/helium-chromium"
+    _build_dir="${_root_dir}/build"
+    _dl_cache="${_build_dir}/download_cache"
+    _src_dir="${_build_dir}/src"
+    _out_dir="${_src_dir}/out/Default"
+
+    _subs_cache="${_build_dir}/subs.tar.gz"
+    _namesubs_cache="${_build_dir}/namesubs.tar"
+
+    mkdir -p "${_dl_cache}"
+}
+
+setup_environment() {
+    setup_paths
+    setup_arch
+
+    _has_pgo=false
+}
+
+fetch_sources() {
+    local use_clone="${1:-false}"
+    local with_pgo="${2:-false}"
+    local stamp="${_src_dir}/.downloaded.stamp"
+
+    if [ -f "${stamp}" ]; then
+        echo "Sources already present, skipping download/unpack"
+        return 0
+    fi
+
+    if [ "$with_pgo" = true ] && [ "$use_clone" != true ]; then
+        echo "builds with pgo need to use clone, specify -c" >&2
+        exit 1
+    fi
+
+    if [ "$use_clone" = true ]; then
+        local _host_arch_clone="$_host_arch"
+        local _pgo_args=()
+
+        if [ "$_host_arch_clone" = x64 ]; then
+            _host_arch_clone="amd64"
+        fi
+
+        if [ "$with_pgo" = true ]; then
+            if [ "$_build_arch" = x64 ]; then
+                _pgo_args=(-p linux)
+                _has_pgo=true
+            else
+                echo "pgo profiles are currently supported for x86_64 only" >&2
+                echo "build arch is $_build_arch, skipping pgo download" >&2
+            fi
+        fi
+
+        HOME=$(mktemp -d)
+        XDG_CONFIG_HOME="$HOME/.config"
+        export HOME XDG_CONFIG_HOME
+
+        "${_main_repo}/utils/clone.py" \
+            --sysroot "$_host_arch_clone" \
+            "${_pgo_args[@]}" \
+            -o "${_src_dir}"
+    else
+        "${_main_repo}/utils/downloads.py" retrieve -i "${_main_repo}/downloads.ini" -c "${_dl_cache}"
+        "${_main_repo}/utils/downloads.py" unpack -i "${_main_repo}/downloads.ini" -c "${_dl_cache}" "${_src_dir}"
+    fi
+
+    "${_main_repo}/utils/downloads.py" retrieve -i "${_main_repo}/deps.ini" -c "${_dl_cache}"
+    "${_main_repo}/utils/downloads.py" unpack -i "${_main_repo}/deps.ini" -c "${_dl_cache}" "${_src_dir}"
+
+    touch "${stamp}"
+}
+
+apply_patches() {
+    if [ ! -f "${_src_dir}/.patched.stamp" ]; then
+        "${_main_repo}/utils/prune_binaries.py" "${_src_dir}" "${_main_repo}/pruning.list"
+        "${_main_repo}/utils/patches.py" apply "${_src_dir}" "${_main_repo}/patches" "${_root_dir}/patches"
+        touch "${_src_dir}/.patched.stamp"
+    fi
+}
+
+apply_domsub() {
+    if [ ! -f "${_src_dir}/.domsub.stamp" ]; then
+        "${_main_repo}/utils/domain_substitution.py" apply -r "${_main_repo}/domain_regex.list" -f "${_main_repo}/domain_substitution.list" "${_src_dir}"
+        touch "${_src_dir}/.domsub.stamp"
+    fi
+}
+
+helium_substitution() {
+    python3 "$_main_repo/utils/name_substitution.py" --sub \
+        -t "$_src_dir" --backup-path "$_namesubs_cache"
+}
+
+helium_apply_translations() {
+    python3 "$_main_repo/utils/i18n_apply.py" -t "$_src_dir"
+}
+
+helium_version() {
+    python3 "$_main_repo/utils/helium_version.py" \
+        --tree "$_main_repo" \
+        --platform-tree "$_root_dir" \
+        --chromium-tree "$_src_dir"
+}
+
+helium_resources() {
+    python3 "$_main_repo/utils/generate_resources.py" "$_main_repo/resources/generate_resources.txt" "$_main_repo/resources"
+    python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/resources/helium_resources.txt" "$_main_repo/resources" "$_src_dir"
+}
+
+write_gn_args() {
+    mkdir -p "${_out_dir}"
+
+    cat "${_main_repo}/flags.gn" "${_root_dir}/flags.linux.gn" | tee "${_out_dir}/args.gn"
+    echo "target_cpu = \"$_build_arch\"" | tee -a "${_out_dir}/args.gn"
+    echo "v8_target_cpu = \"$_build_arch\"" | tee -a "${_out_dir}/args.gn"
+
+    if [ "$_has_pgo" = true ]; then
+        echo "chrome_pgo_phase = 2" | tee -a "${_out_dir}/args.gn"
+    fi
+
+    if [ -n "${SISO_REAPI_ADDRESS:-}" ]; then
+        echo 'use_remoteexec = true' | tee -a "${_out_dir}/args.gn"
+    elif command -v sccache >/dev/null 2>&1 && env | grep -q ^SCCACHE; then
+        echo 'cc_wrapper = "sccache"' | tee -a "${_out_dir}/args.gn"
+    elif command -v ccache >/dev/null; then
+        echo 'cc_wrapper = "ccache"' | tee -a "${_out_dir}/args.gn"
+    fi
+}
+
+configure_remoteexec() {
+    if [ -z "${SISO_REAPI_ADDRESS:-}" ]; then
+        return 0
+    fi
+
+    export SISO_REAPI_INSTANCE="${SISO_REAPI_INSTANCE:-main}"
+    export RBE_service_no_security=true
+
+    python3 "${_src_dir}/build/config/siso/configure_siso.py" \
+        --reapi_address="${SISO_REAPI_ADDRESS}" \
+        --reapi_instance="${SISO_REAPI_INSTANCE}" \
+        --reapi_backend_config_path=nativelink.star
+}
+
+# fix downloading of prebuilt tools and sysroot files
+# (https://github.com/ungoogled-software/ungoogled-chromium/issues/1846)
+fix_tool_downloading() {
+    sed -i 's/commondatastorage.9oo91eapis.qjz9zk/commondatastorage.googleapis.com/g' \
+        "${_src_dir}/build/linux/sysroot_scripts/sysroots.json" \
+        "${_src_dir}/tools/clang/scripts/update.py" \
+        "${_src_dir}/tools/clang/scripts/build.py"
+
+    sed -i 's/chromium.9oo91esource.qjz9zk/chromium.googlesource.com/g' \
+        "${_src_dir}/tools/clang/scripts/build.py" \
+        "${_src_dir}/tools/rust/build_rust.py" \
+        "${_src_dir}/tools/rust/build_bindgen.py"
+
+    sed -i 's/chrome-infra-packages.8pp2p8t.qjz9zk/chrome-infra-packages.appspot.com/g' \
+        "${_src_dir}/tools/rust/build_rust.py"
+}
+
+setup_toolchain() {
+    mkdir -p "${_src_dir}/third_party/node/linux/node-linux-x64/bin"
+    ln -sf "$(which node)" "${_src_dir}/third_party/node/linux/node-linux-x64/bin/node"
+    mkdir -p "${_src_dir}/third_party/gperf/cipd/bin/"
+    ln -sf "$(which gperf)" "${_src_dir}/third_party/gperf/cipd/bin/gperf"
+    mkdir -p "${_src_dir}/buildtools/linux64-format"
+    ln -sf "$(which clang-format)" \
+        "${_src_dir}/buildtools/linux64-format/clang-format"
+    mkdir -p "${_src_dir}/buildtools/third_party/mold/cipd/"
+    ln -sf "$(which mold)" "${_src_dir}/buildtools/third_party/mold/cipd/mold"
+
+    local -a setup_jobs=()
+    # Chromium currently has no non-x86 llvm/rust builds on
+    # Linux, so we have to build it ourselves.
+    if [ "$_host_arch" = x64 ]; then
+        "${_src_dir}/tools/rust/update_rust.py" &
+        setup_jobs+=("$! Rust")
+        "${_src_dir}/tools/clang/scripts/update.py" &
+        setup_jobs+=("$! Clang")
+    else
+        "${_src_dir}/tools/clang/scripts/build.py" \
+            --without-fuchsia --without-android --disable-asserts \
+            --host-cc=clang --host-cxx=clang++ --use-system-cmake \
+            --with-ml-inliner-model=
+
+        export CARGO_HOME="${_src_dir}/third_party/rust-src/cargo-home"
+        "${_src_dir}/tools/rust/build_rust.py" \
+            --skip-test
+
+        "${_src_dir}/tools/rust/build_bindgen.py"
+    fi
+
+    if grep -q -F "use_sysroot=true" "${_out_dir}/args.gn"; then
+        "${_src_dir}/build/linux/sysroot_scripts/install-sysroot.py" --arch="$_host_arch" &
+        setup_jobs+=("$! $_host_arch sysroot")
+        if [ "$_build_arch" != "$_host_arch" ]; then
+            "${_src_dir}/build/linux/sysroot_scripts/install-sysroot.py" --arch="$_build_arch" &
+            setup_jobs+=("$! $_build_arch sysroot")
+        fi
+    fi
+
+    local cipd_installer="${_main_repo}/utils/install_cipd_deps.py"
+    local -a cipd_args=()
+    if [ -n "${SISO_REAPI_ADDRESS:-}" ]; then
+        cipd_args+=(--remote-exec)
+    fi
+
+    export CIPD_CACHE_DIR="$_dl_cache/cipd"
+    mkdir -p "$CIPD_CACHE_DIR"
+    python3 "$cipd_installer" "$_src_dir" "${cipd_args[@]}" &
+    setup_jobs+=("$! CIPD packages")
+
+    local setup_job setup_exit_code setup_result=0
+    for setup_job in "${setup_jobs[@]}"; do
+        if wait "${setup_job%% *}"; then
+            :
+        else
+            setup_exit_code=$?
+            echo "${setup_job#* } setup failed (exit $setup_exit_code)" >&2
+            setup_result=$setup_exit_code
+        fi
+    done
+    if [ "$setup_result" -ne 0 ]; then
+        return "$setup_result"
+    fi
+
+    # clone.py skips gclient hooks, including the hook that creates this file.
+    local siso_config_dir="${_src_dir}/build/config/siso"
+    if [ ! -f "${siso_config_dir}/backend_config/backend.star" ]; then
+        cp "${siso_config_dir}/backend_config/google.star" \
+            "${siso_config_dir}/backend_config/backend.star"
+    fi
+}
+
+gn_gen() {
+    cd "${_src_dir}"
+    ./buildtools/linux64/gn gen out/Default --fail-on-unused-args
+}
+
+build() {
+    cd "${_src_dir}"
+    configure_remoteexec
+    local siso="${_src_dir}/third_party/siso/cipd/siso"
+    local autoninja="${_src_dir}/third_party/depot_tools/autoninja.py"
+    SISO_PATH="$siso" "$autoninja" -C "$_out_dir" chrome chromedriver "$@"
+}

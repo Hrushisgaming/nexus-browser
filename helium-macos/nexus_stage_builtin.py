@@ -6,6 +6,7 @@ usage: nexus_stage_builtin.py <chromium src dir> <nexus-rebrand dir>
 Puts these in <src>/third_party/nexus_builtin/ (see patches/nexus/builtin-vault-vpn.patch):
   vault/          from <nexus-rebrand>/nexus-vault
   authenticator/  from <nexus-rebrand>/nexus-authenticator
+  core_connect/   from <nexus-rebrand>/nexus-core-connect (pairs the browser with Nexus Core)
   proton_vpn/     unpacked from <nexus-rebrand>/vendor/proton-vpn.crx (downloaded once if it is not there)
 The browser then ships all three inside itself, like uBlock Origin. Nothing is loaded at start-up.
 """
@@ -69,6 +70,14 @@ def main(src, rebrand):
     shutil.rmtree(auth, ignore_errors=True)
     shutil.copytree(auth_src, auth, ignore=shutil.ignore_patterns('.DS_Store', 'README.txt', '__MACOSX'))
 
+    # Nexus Core Connect
+    cc_src = os.path.join(rebrand, 'nexus-core-connect')
+    if not os.path.isfile(os.path.join(cc_src, 'manifest.json')):
+        fail('nexus-core-connect/manifest.json not found in ' + rebrand)
+    cc = os.path.join(out, 'core_connect')
+    shutil.rmtree(cc, ignore_errors=True)
+    shutil.copytree(cc_src, cc, ignore=shutil.ignore_patterns('.DS_Store', 'README.txt', '__MACOSX'))
+
     # Proton VPN
     crx = os.path.join(rebrand, 'vendor', 'proton-vpn.crx')
     if not os.path.isfile(crx) or os.path.getsize(crx) == 0:
@@ -84,10 +93,10 @@ def main(src, rebrand):
     if m.get('manifest_version') != 3:
         print('nexus_stage_builtin: note: Proton VPN manifest_version is %s' % m.get('manifest_version'))
 
-    total = sum(len(fs) for d in (vault, auth, proton) for _, _, fs in os.walk(d))
+    total = sum(len(fs) for d in (vault, auth, cc, proton) for _, _, fs in os.walk(d))
     if total > MAX_FILES:
         fail('%d files is more than the %d ids reserved in resource_ids.spec; raise the size there' % (total, MAX_FILES))
-    print('nexus_stage_builtin: Nexus Vault + Nexus Authenticator + %s %s staged (%d files)' % (name, version, total))
+    print('nexus_stage_builtin: Nexus Vault + Nexus Authenticator + Nexus Core Connect + %s %s staged (%d files)' % (name, version, total))
 
 
 if __name__ == '__main__':

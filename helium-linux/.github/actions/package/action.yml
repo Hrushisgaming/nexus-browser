@@ -1,0 +1,81 @@
+name: Package AppImage
+description: Package Nexus as AppImage and tar.xz, upload artifacts
+
+inputs:
+  private_key:
+    description: 'GPG private key (optional: without it the build is left unsigned)'
+    required: false
+    default: ''
+  passphrase:
+    description: 'Passphrase protecting the GPG private key'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: docker/setup-buildx-action@v3
+
+    - name: Download build cache
+      uses: actions/download-artifact@v4
+      with:
+        name: build-cache-${{ env.ARCH }}
+        path: .github/cache/
+
+    - name: Import build cache
+      shell: bash
+      run: bash ./.github/scripts/import-cache.sh
+
+    - name: Package and sign AppImage with Docker
+      shell: bash
+      env:
+        GPG_PRIVATE_KEY: ${{ inputs.private_key }}
+        GPG_PASSPHRASE: ${{ inputs.passphrase }}
+        MAKE_DEB: 1
+      run: |
+        if [ -n "$GPG_PRIVATE_KEY" ]; then bash ./package/docker-package.sh --sign; else bash ./package/docker-package.sh; fi
+
+    - name: List build artifacts
+      shell: bash
+      run: ls -la build
+
+    - name: Get version info
+      id: version
+      shell: bash
+      run: |
+        helium_version=$(python3 "helium-chromium/utils/helium_version.py" --tree "helium-chromium/" --platform-tree "." --print)
+        echo "version=${helium_version}" >> $GITHUB_OUTPUT
+
+    - name: Upload AppImage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nexus-${{ steps.version.outputs.version }}-${{ env.ARCH }}-AppImage
+        path: build/release/helium-${{ steps.version.outputs.version }}-${{ env.ARCH }}.AppImage*
+        if-no-files-found: error
+        compression-level: 0
+
+    - name: Upload tar.xz artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nexus-${{ steps.version.outputs.version }}-${{ env.ARCH }}-linux
+        path: |
+          build/release/helium-${{ steps.version.outputs.version }}-${{ env.ARCH }}_linux.tar.xz
+          build/release/helium-${{ steps.version.outputs.version }}-${{ env.ARCH }}_linux.tar.xz.asc
+        if-no-files-found: error
+        compression-level: 0
+
+    - name: Upload symbols artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: helium-${{ steps.version.outputs.version }}-${{ env.ARCH }}-symbols
+        path: build/release/helium-${{ steps.version.outputs.version }}-${{ env.ARCH }}_symbols.zip
+        if-no-files-found: error
+        compression-level: 0
+
+    - name: Upload .deb artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: helium-${{ steps.version.outputs.version }}-${{ env.ARCH }}-deb
+        path: build/release/helium-bin_${{ steps.version.outputs.version }}-1_*.deb
+        if-no-files-found: error
+        compression-level: 0

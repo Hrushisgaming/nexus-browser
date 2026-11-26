@@ -35,7 +35,7 @@ jobs:
           submodules: false
           persist-credentials: false
       - uses: ./.github/actions/prepare-environment
-      - name: Download Chromium, apply patches, stage Nexus Vault and Proton VPN
+      - name: Download Chromium, apply patches, stage the Nexus built-in extensions
         run: |
           set -o pipefail
           source ./devutils/shared.sh
@@ -45,6 +45,8 @@ jobs:
         run: |
           test -f build/src/third_party/nexus_builtin/vault/manifest.json
           test -f build/src/third_party/nexus_builtin/proton_vpn/manifest.json
+          test -f build/src/third_party/nexus_builtin/authenticator/manifest.json
+          test -f build/src/third_party/nexus_builtin/core_connect/manifest.json
           test -f build/src/third_party/nexus_builtin/BUILD.gn
       - name: Archive resources
         run: ./github_pack_resources.sh | tee -a github_actions_retrieve_resources.log

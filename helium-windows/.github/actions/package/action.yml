@@ -1,0 +1,105 @@
+name: Package Windows release
+description: Finish the build, sign binaries, create and sign the installer, and upload packages
+inputs:
+  from_artifact:
+    description: Restore the build tree from a previous job
+    default: true
+  arch:
+    description: Target architecture (x86_64 or arm64)
+    required: true
+  azure-tenant-id:
+    description: AZURE_TENANT_ID
+    required: false
+  azure-client-id:
+    description: AZURE_CLIENT_ID
+    required: false
+  azure-client-secret:
+    description: AZURE_CLIENT_SECRET
+    required: false
+  azure-signing-endpoint:
+    description: AZURE_SIGNING_ENDPOINT
+    required: false
+  azure-signing-account:
+    description: AZURE_SIGNING_ACCOUNT
+    required: false
+  azure-signing-certificate-name:
+    description: AZURE_SIGNING_CERTIFICATE_NAME
+    required: false
+outputs:
+  version:
+    description: Version of the packaged release
+    value: ${{ steps.stage3.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - name: Run Stage
+      id: stage
+      uses: ./.github/actions/stage
+      with:
+        arm: ${{ inputs.arch == 'arm64' }}
+        from_artifact: ${{ inputs.from_artifact }}
+        save_artifact: false
+
+    - name: Check build completed
+      if: steps.stage.outputs.finished != 'true'
+      shell: pwsh
+      run: throw 'Build did not finish within the available stages'
+
+    - name: Set up signing runtime
+      if: ${{ inputs.azure-tenant-id != '' }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Package release (unsigned)
+      id: release_unsigned
+      if: ${{ inputs.azure-tenant-id == '' }}
+      shell: pwsh
+      working-directory: C:\helium-windows
+      run: |
+        python -m pip install pywin32==311
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        python package.py --output-dir build\unsigned
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        "artifacts=C:\helium-windows\build\unsigned" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+    - name: Sign and package release
+      id: release
+      if: ${{ inputs.azure-tenant-id != '' }}
+      shell: pwsh
+      working-directory: C:\helium-windows
+      env:
+        TARGET_ARCH: ${{ inputs.arch == 'arm64' && 'arm64' || 'x64' }}
+        AZURE_TENANT_ID: ${{ inputs.azure-tenant-id }}
+        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
+        AZURE_CLIENT_SECRET: ${{ inputs.azure-client-secret }}
+        AZURE_SIGNING_ENDPOINT: ${{ inputs.azure-signing-endpoint }}
+        AZURE_SIGNING_ACCOUNT: ${{ inputs.azure-signing-account }}
+        AZURE_SIGNING_CERTIFICATE_NAME: ${{ inputs.azure-signing-certificate-name }}
+      run: |
+        nuget install Microsoft.ArtifactSigning.Client -Version 1.0.128 -ExcludeVersion -NonInteractive
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        python -m pip install pywin32==311
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        python signing.py --arch $env:TARGET_ARCH --dlib Microsoft.ArtifactSigning.Client/bin/x64/Azure.CodeSigning.Dlib.dll
+
+    - name: Upload symbols
+      uses: actions/upload-artifact@v4
+      with:
+        name: nexus-windows-${{ inputs.arch }}-symbols
+        path: |
+          C:\helium-windows\build\src\out\Default\*.pdb
+          C:\helium-windows\build\src\out\Default\*.exe
+          C:\helium-windows\build\src\out\Default\*.dll
+        if-no-files-found: error
+        retention-days: 4
+        overwrite: true
+
+    - name: Upload artifacts
+      id: stage3
+      uses: ./.github/actions/stage
+      with:
+        upload_final: true
+        final_directory: ${{ steps.release.outputs.artifacts || steps.release_unsigned.outputs.artifacts }}
+        arm: ${{ inputs.arch == 'arm64' }}
+        from_artifact: false

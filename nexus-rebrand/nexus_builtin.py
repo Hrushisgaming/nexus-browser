@@ -17,6 +17,7 @@ import base64, hashlib, json, os, plistlib, shutil, stat, struct, sys, zipfile, 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROTON_ID = 'jplgfhpmjnbigmhklmmbgecoobifkmpa'
 VAULT_ID = 'aideengppkjlkhmlfabkigdahhogfbdi'
+CORE_CONNECT_ID = 'lcjcplddeeeaemcmkkijilbhnmlbdnam'   # from the key in nexus-core-connect/manifest.json
 AUTHENTICATOR_ID = 'akbamahfimlndcjkkonndelmldbnmefd'    # from the key in nexus-authenticator/manifest.json
 UBLOCK_ID = 'blockjmkbacgjkknlgpkjjiijinjdanf'      # Helium pins uBlock by default; a pins list we write must keep it
 
@@ -121,7 +122,7 @@ def main(app, crx=None, native=False):
     pins = [UBLOCK_ID]
 
     # 1. Our own extensions (each manifest carries a fixed key, so the id is the same wherever the app lives)
-    own = [('nexus-chat', 'Chat with Nexus', True)] if native else [('nexus-chat', 'Chat with Nexus', True), ('nexus-vault', 'Nexus Vault', True), ('nexus-authenticator', 'Nexus Authenticator', True)]
+    own = [('nexus-chat', 'Chat with Nexus', True)] if native else [('nexus-chat', 'Chat with Nexus', True), ('nexus-vault', 'Nexus Vault', True), ('nexus-authenticator', 'Nexus Authenticator', True), ('nexus-core-connect', 'Nexus Core Connect', True)]
     # "Convert to it!" (nexus://convert): only when fetch_convert.sh has built it (it has no toolbar icon, so it is not pinned)
     if os.path.isfile(os.path.join(HERE, 'nexus-convert', 'index.html')): own.append(('nexus-convert', 'Convert with Nexus', False))
     else: print('  Convert to it!: not built yet (run fetch_convert.sh), skipped')
@@ -135,7 +136,7 @@ def main(app, crx=None, native=False):
 
     # 2. Proton VPN (optional: only when its .crx has been fetched)
     if native:
-        pins += [VAULT_ID, PROTON_ID, AUTHENTICATOR_ID]
+        pins += [VAULT_ID, PROTON_ID, AUTHENTICATOR_ID, CORE_CONNECT_ID]
         print('  native build: Nexus Vault, Nexus Authenticator and Proton VPN are already inside the browser')
     elif crx and os.path.isfile(crx):
         eid, name, ver = unpack_crx(crx, os.path.join(root, 'proton-vpn'))

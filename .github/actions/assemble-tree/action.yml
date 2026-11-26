@@ -1,0 +1,27 @@
+name: Assemble the build tree
+description: >
+  Turns the workspace into the layout Helium's Linux/Windows build scripts expect (their repo root),
+  using this repo's helium-<os> folder plus the shared, Nexus-branded helium-macos/helium-chromium.
+
+inputs:
+  os:
+    description: linux or windows
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Assemble
+      shell: bash
+      run: |
+        set -euo pipefail
+        os="${{ inputs.os }}"
+        test -d "helium-$os" && test -d helium-macos/helium-chromium
+        tree="${RUNNER_TEMP:-/tmp}/nexus-tree-$os"
+        rm -rf "$tree" && mkdir -p "$tree"
+        cp -a "helium-$os/." "$tree/"
+        rm -rf "$tree/helium-chromium"
+        cp -a helium-macos/helium-chromium "$tree/helium-chromium"
+        find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+        cp -a "$tree/." .
+        echo "Assembled $os tree: $(ls | tr '\n' ' ')"

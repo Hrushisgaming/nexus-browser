@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nexus Browser Control</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon-32.png" width="24" height="24" alt="">
+    <h1>Nexus Browser Control</h1>
+  </header>
+
+  <div class="status" id="statusRow">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">Loading…</span>
+  </div>
+  <p class="detail" id="detail"></p>
+
+  <section id="pairView" hidden>
+    <label for="code">Pairing code from Nexus Core</label>
+    <input id="code" inputmode="numeric" maxlength="7" placeholder="000 000" autocomplete="off" spellcheck="false">
+    <details>
+      <summary>Advanced</summary>
+      <label for="host">Nexus Core address</label>
+      <input id="host" placeholder="127.0.0.1:8765" autocomplete="off" spellcheck="false">
+      <label for="name">Name for this browser</label>
+      <input id="name" placeholder="Chrome" autocomplete="off">
+    </details>
+    <button id="pairBtn" class="primary">Connect</button>
+    <p class="hint">In Nexus Core, ask for a pairing code (or open the Nexus Connect setup screen), then enter the 6 digits here. You only do this once.</p>
+  </section>
+
+  <section id="pairedView" hidden>
+    <div class="row"><span>Browser name</span><b id="devName">–</b></div>
+    <div class="row"><span>Nexus Core</span><b id="devHost">–</b></div>
+    <label class="switch">
+      <input type="checkbox" id="pause">
+      <span>Pause control <small>(stays connected, ignores commands). Shortcut: <b id="pauseKey">Alt+Shift+P</b></small></span>
+    </label>
+
+    <div class="card">
+      <div class="card-title">This tab <span id="tabHost" class="muted"></span></div>
+      <p class="hint" id="tabNote"></p>
+      <button id="shareBtn">Let Nexus use this tab</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Send to Nexus</div>
+      <textarea id="note" rows="2" placeholder="Optional: what should Nexus do with it? (summarise, explain, reply…)"></textarea>
+      <div class="buttons">
+        <button id="sendPage">Send this page</button>
+        <button id="sendSel">Send selection</button>
+      </div>
+      <p class="hint" id="sendMsg"></p>
+    </div>
+
+    <details>
+      <summary>Safety settings</summary>
+      <label class="switch"><input type="checkbox" id="scope"><span>Let Nexus use <b>all</b> my tabs, not just its own “Nexus” tab group</span></label>
+      <label class="switch"><input type="checkbox" id="realInput"><span>Use real mouse &amp; keyboard input <small>(Chrome shows a “debugging this browser” bar while it does)</small></span></label>
+      <label class="switch"><input type="checkbox" id="confirmRisky"><span>Ask me before Nexus pays, sends, posts or deletes</span></label>
+      <label class="switch"><input type="checkbox" id="confirmScripts"><span>Ask me before Nexus runs a script in a page</span></label>
+      <label for="siteMode">Site rules</label>
+      <select id="siteMode">
+        <option value="blocklist">Nexus may use any site except these:</option>
+        <option value="allowlist">Nexus may use only these sites:</option>
+      </select>
+      <textarea id="siteList" rows="5" spellcheck="false" placeholder="one site per line, e.g. mybank.com"></textarea>
+      <button id="saveSites">Save site list</button>
+      <p class="hint" id="settingsMsg"></p>
+    </details>
+
+    <details id="activityBox">
+      <summary>Activity <span class="muted" id="activityCount"></span></summary>
+      <ul id="activity" class="activity"></ul>
+      <button id="clearActivity">Clear</button>
+    </details>
+
+    <div class="buttons">
+      <button id="reconnectBtn">Reconnect</button>
+      <button id="unpairBtn" class="danger">Disconnect &amp; forget</button>
+    </div>
+  </section>
+
+  <p class="error" id="error" role="alert"></p>
+  <script src="popup.js"></script>
+</body>
+</html>

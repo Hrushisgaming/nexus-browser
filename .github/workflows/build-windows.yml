@@ -1,0 +1,34 @@
+name: Build Nexus for Windows (x64 + arm64)
+
+# Run it from the Actions tab: "Build Nexus for Windows" -> "Run workflow", or let "Build Nexus (all platforms)" call it.
+# Result: artifacts "nexus-x86_64" / "nexus-arm64" with the installer, mini installer and portable zip. Unsigned.
+# NOT BUILT YET: written from Helium's Windows CI, never compiled here. If a run fails, send the log of the failed step.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        required: false
+        description: "Runner image name"
+        default: "windows-2025"
+  workflow_call:
+    inputs:
+      runner:
+        required: false
+        type: string
+        default: "windows-2025"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Nexus ${{ matrix.arch }}
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+      fail-fast: false
+    uses: ./.github/workflows/windows-steps.yml
+    with:
+      arch: ${{ matrix.arch }}
+      runs-on: ${{ inputs.runner || 'windows-2025' }}

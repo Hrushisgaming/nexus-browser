@@ -1,0 +1,20 @@
+--- a/chrome/installer/mini_installer/BUILD.gn
++++ b/chrome/installer/mini_installer/BUILD.gn
+@@ -195,6 +195,7 @@ action("mini_installer_archive") {
+     "//chrome:chrome_dll",
+     "//chrome/browser/extensions/default_extensions",
+     "//chrome/chrome_elf",
++    "//chrome/elevation_service",
+     "//chrome/installer/setup",
+     "//third_party/icu:icudata",
+   ]
+--- a/chrome/installer/mini_installer/chrome.release
++++ b/chrome/installer/mini_installer/chrome.release
+@@ -26,6 +26,7 @@ chrome_pwa_launcher.exe: %(VersionDir)s\
+ chrome_renderer.dll: %(VersionDir)s\
+ chrome_wer.dll: %(VersionDir)s\
+ d3dcompiler_47.dll: %(VersionDir)s\
++elevation_service.exe: %(VersionDir)s\
+ eventlog_provider.dll: %(VersionDir)s\
+ icudtl.dat: %(VersionDir)s\
+ libEGL.dll: %(VersionDir)s\
