@@ -6,6 +6,43 @@ runs:
     - name: Record job start
       shell: pwsh
       run: '"HELIUM_JOB_STARTED_AT=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" >> $env:GITHUB_ENV'
+    - name: Free disk space on C:\
+      shell: pwsh
+      run: |
+        # The Chromium checkout plus build output nearly fills the hosted runner's C: drive
+        # ("There is not enough space on the disk" during gn gen), so remove preinstalled tools the build never uses.
+        function Show-Free { Get-PSDrive -PSProvider FileSystem | ForEach-Object { '{0}: {1:N1} GB free' -f $_.Name, ($_.Free / 1GB) } }
+        'Before cleanup:'; Show-Free
+        $targets = @(
+          'C:\Android',
+          'C:\Program Files\Android',
+          'C:\Program Files (x86)\Android',
+          'C:\Program Files\Microsoft SQL Server',
+          'C:\Program Files (x86)\Microsoft SQL Server',
+          'C:\Program Files\PostgreSQL',
+          'C:\Program Files\MySQL',
+          'C:\Strawberry',
+          'C:\Julia',
+          'C:\ghcup',
+          'C:\Miniconda',
+          'C:\Program Files\Azure Cosmos DB Emulator',
+          'C:\Program Files\Amazon',
+          'C:\Program Files (x86)\Google\Cloud SDK',
+          'C:\Program Files\Google\Cloud SDK',
+          'C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk',
+          'C:\hostedtoolcache\windows\Java_Adopt_jdk',
+          'C:\hostedtoolcache\windows\Java_Zulu_jdk',
+          'C:\hostedtoolcache\windows\Ruby',
+          'C:\hostedtoolcache\windows\PyPy',
+          'C:\hostedtoolcache\windows\go'
+        )
+        foreach ($t in $targets) {
+          if (Test-Path -LiteralPath $t) {
+            "Removing $t"
+            cmd /c rd /s /q "`"$t`"" 2>$null
+          }
+        }
+        'After cleanup:'; Show-Free
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
