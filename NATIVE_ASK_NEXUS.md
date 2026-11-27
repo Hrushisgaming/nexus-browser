@@ -43,3 +43,13 @@ the line, and the patch is only ~280 lines.
 - AI Mode search option: the "Chat with Nexus" extension (1.7.0) now has an address-bar keyword. Type "ai", press Space or Tab,
   type a question and press Enter: it opens nexus://ai (the full-tab chat) and sends the question. Extension-only, no Chromium patch.
   Helium removes Chrome's own Google "AI Mode" button from the address bar dropdown; this keyword is Nexus's replacement.
+
+## Update 2026-11-27: toolbar button never showed + no fill/color
+- Why it was missing in vertical/compact/dynamic: the pill patch only called SetVisible() when
+  `layout_manager_->CanBeVisible(button)` differed from the wanted state, and CanBeVisible stays true for a button that
+  was added hidden, so it never turned visible. The pill patch no longer touches UpdateNexusAskButton (back to a plain
+  SetVisible from UpdateToolbarLayout / the pref observer, never from a layout pass).
+- Why it had no fill: Helium maps kColorNewTabButtonCRBackground* to the flat toolbar color and the nudge button uses
+  those ids. Both buttons (tab strip and toolbar) now set their own color ids: tonal blue fill, blue crosshair + label
+  (Set{Background,Foreground}Frame{Active,Inactive}ColorId + UpdateColors). The toolbar one also gets a thin tonal outline.
+- NOT compiled. If the build breaks, send the first error lines.

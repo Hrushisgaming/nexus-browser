@@ -2,7 +2,7 @@ diff --git a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc b
 index 02e4db9..d27a813 100644
 --- a/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.cc
-@@ -307,13 +307,16 @@ HorizontalTabStripRegionViewOld::HorizontalTabStripRegionViewOld(
+@@ -307,13 +307,23 @@ HorizontalTabStripRegionViewOld::HorizontalTabStripRegionViewOld(
    // (kScaleToZero above) shrinks.
    if (browser &&
        (browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL)) {
@@ -19,6 +19,13 @@ index 02e4db9..d27a813 100644
 +        /*show_close_button=*/false));
 +    // A nudge button starts at width 0; Nexus keeps it fully open, like Ask Gemini.
 +    nexus_ask_button_->SetWidthFactor(1.0f);
++    // Slightly blue fill and a blue crosshair + label (the Ask Gemini look). Helium turns the stock color ids
++    // into the flat toolbar color, which left this button without any fill.
++    nexus_ask_button_->SetBackgroundFrameActiveColorId(ui::kColorSysTonalContainer);
++    nexus_ask_button_->SetBackgroundFrameInactiveColorId(ui::kColorSysTonalContainer);
++    nexus_ask_button_->SetForegroundFrameActiveColorId(ui::kColorSysPrimary);
++    nexus_ask_button_->SetForegroundFrameInactiveColorId(ui::kColorSysPrimary);
++    nexus_ask_button_->UpdateColors();
      nexus_ask_button_->SetTooltipText(u"Ask Nexus");
      nexus_ask_button_->GetViewAccessibility().SetName(u"Ask Nexus");
      nexus_ask_button_->SetProperty(views::kCrossAxisAlignmentKey,
