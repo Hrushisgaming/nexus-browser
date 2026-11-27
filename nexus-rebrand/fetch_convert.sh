@@ -2,19 +2,19 @@
 # Builds "Convert to it!" (github.com/p2r3/convert, GPL-2.0) and puts the result into nexus-convert/ so that it becomes
 # the built-in page nexus://convert. Needs bun (https://bun.sh) and git. Takes a few minutes; needs internet.
 #
-#   ./fetch_convert.sh              build the pinned version below
-#   CONVERT_REF=main ./fetch_convert.sh   build another branch/tag/commit
+#   ./fetch_convert.sh              build the latest default branch of p2r3/convert (it is "master", not "main")
+#   CONVERT_REF=<ref> ./fetch_convert.sh   build a specific branch/tag/commit
 #
 # The result (nexus-convert/index.html and its assets) is plain build output; delete it and run this again to update.
 # If anything fails nothing is left half-written: nexus-convert/ keeps what it had.
 set -euo pipefail
 cd "$(dirname "$0")"
-REF="${CONVERT_REF:-main}"
+REF="${CONVERT_REF:-}"
 command -v bun >/dev/null || { echo "bun is missing: install it from https://bun.sh (or: npm i -g bun)"; exit 1; }
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
-echo "==> Fetching p2r3/convert ($REF)"
+echo "==> Fetching p2r3/convert (${REF:-default branch})"
 git clone --quiet https://github.com/p2r3/convert "$WORK/src"
-git -C "$WORK/src" checkout --quiet "$REF"
+[ -z "$REF" ] || git -C "$WORK/src" checkout --quiet "$REF"
 SHA="$(git -C "$WORK/src" rev-parse HEAD)"
 cd "$WORK/src"
 echo "==> Building ($SHA)"
