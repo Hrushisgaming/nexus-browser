@@ -50,7 +50,7 @@ jobs:
         with:
           name: docker-image-${{ inputs.arch }}
           path: /tmp/chromium-builder.tar
-          retention-days: 1
+          retention-days: 7
 
       - name: Prepare build tree
         uses: ./.github/actions/build
