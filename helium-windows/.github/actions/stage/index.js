@@ -22,10 +22,10 @@ async function run() {
     const artifactName = arm ? 'build-artifact-arm64' : 'build-artifact-x86_64';
     if (from_artifact && !upload_final) {
         const artifactInfo = await artifact.getArtifact(artifactName);
-        await artifact.downloadArtifact(artifactInfo.artifact.id, {path: 'C:\\helium-windows\\build'});
-        await exec.exec('7z', ['x', 'C:\\helium-windows\\build\\artifacts.zip',
-            '-oC:\\helium-windows\\build', '-y']);
-        await io.rmRF('C:\\helium-windows\\build\\artifacts.zip');
+        await artifact.downloadArtifact(artifactInfo.artifact.id, {path: 'D:\\helium-windows\\build'});
+        await exec.exec('7z', ['x', 'D:\\helium-windows\\build\\artifacts.zip',
+            '-oD:\\helium-windows\\build', '-y']);
+        await io.rmRF('D:\\helium-windows\\build\\artifacts.zip');
     }
 
     const args = ['build.py', '--ci', String(started_at)]
@@ -79,11 +79,11 @@ async function run() {
     }
 
     await exec.exec('python', ['-m', 'pip', 'install', 'httplib2==0.22.0', 'Pillow', 'clang-format'], {
-        cwd: 'C:\\helium-windows',
+        cwd: 'D:\\helium-windows',
         ignoreReturnCode: true
     });
     const retCode = await exec.exec('python', args, {
-        cwd: 'C:\\helium-windows',
+        cwd: 'D:\\helium-windows',
         ignoreReturnCode: true
     });
 
@@ -98,8 +98,8 @@ async function run() {
     core.setOutput('package_here', package_here);
 
     if (!package_here && core.getBooleanInput('save_artifact')) {
-        await exec.exec('7z', ['a', '-tzip', 'C:\\helium-windows\\artifacts.zip',
-            'C:\\helium-windows\\build\\src', '-mx=3', '-mtc=on'], {ignoreReturnCode: true});
+        await exec.exec('7z', ['a', '-tzip', 'D:\\helium-windows\\artifacts.zip',
+            'D:\\helium-windows\\build\\src', '-mx=3', '-mtc=on'], {ignoreReturnCode: true});
         for (let i = 0; i < 5; ++i) {
             try {
                 await artifact.deleteArtifact(artifactName);
@@ -107,8 +107,8 @@ async function run() {
                 // ignored
             }
             try {
-                await artifact.uploadArtifact(artifactName, ['C:\\helium-windows\\artifacts.zip'],
-                    'C:\\helium-windows', { retentionDays: 4, compressionLevel: 0 });
+                await artifact.uploadArtifact(artifactName, ['D:\\helium-windows\\artifacts.zip'],
+                    'D:\\helium-windows', { retentionDays: 4, compressionLevel: 0 });
                 break;
             } catch (e) {
                 console.error(`Upload artifact failed: ${e}`);
